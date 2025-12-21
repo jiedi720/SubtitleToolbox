@@ -77,23 +77,14 @@ subtitle_toolbox/
 │   └── txt_logic.py     # TXT 生成与合并
 ├── subtitle-toolbox.ico # 程序图标
 └── update.bat           # GitHub 一键更新脚本
+
 📦 打包为 EXE (Building)
 如果你想将程序打包为独立的 .exe 文件分享给他人，请使用 PyInstaller。
 
 完整打包命令 (v1.0):
 
 PowerShell
-
 python -m PyInstaller --onefile --windowed --name="SubtitleToolbox" --icon="subtitle-toolbox.ico" --add-data "logic;logic" --add-data "subtitle-toolbox.ico;." --hidden-import="reportlab" --hidden-import="reportlab.platypus" --hidden-import="reportlab.lib.styles" --hidden-import="reportlab.platypus.tableofcontents" --hidden-import="win32timezone" --hidden-import="pysrt" --hidden-import="docx" --hidden-import="docxcompose" --hidden-import="win32com" --hidden-import="win32com.client" --hidden-import="pythoncom" --hidden-import="pypdf" --hidden-import="utils" --hidden-import="config" --clean main.py
-📝 更新日志 (Changelog)
-v1.0 (Current)
-重构: 将单文件拆分为 logic/ 模块化架构。
-
-新增: TXT 剧本生成与合并功能。
-
-修复: PDF 生成时的韩文方框乱码问题（优先加载 Malgun Gothic）。
-
-优化: Word 合并改用 Win32 API，解决格式丢失问题。
 
 优化: 文件扫描支持包含 [] 等特殊字符的路径。
 
