@@ -1,3 +1,5 @@
+import win32com.client
+import pythoncom
 import os
 import sys
 import re
@@ -7,7 +9,16 @@ import tkinter as tk
 from tkinter import filedialog, scrolledtext, ttk, colorchooser, font, messagebox, simpledialog
 
 # ==========================================
-# 核心修改：将 logic 文件夹加入模块搜索路径
+# 资源路径获取
+# ==========================================
+def resource_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_path, relative_path)
+
+# ==========================================
+# 模块搜索路径
 # ==========================================
 base_dir = os.path.dirname(os.path.abspath(__file__))
 logic_dir = os.path.join(base_dir, 'logic')
@@ -19,7 +30,9 @@ if logic_dir not in sys.path:
 # ==========================================
 try:
     import config
-    from pdf_logic import run_pdf_task
+    # --- 修改点 1: 导入两个 TXT 函数 ---
+    from logic.txt_logic import run_txt_merge_task, run_txt_creation_task
+    from pdf_logic import run_pdf_task, run_pdf_merge_task
     from word_logic import run_word_creation_task, run_win32_merge_task
     from ass_logic import run_ass_task
 except ImportError as e:
@@ -29,9 +42,21 @@ except ImportError as e:
 class UnifiedApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("字幕工具箱")
+        self.root.withdraw()
+        self.root.title("Subtitle Toolbox")
         
-        # 界面变简洁了，调整一下默认尺寸
+        icon_name = "subtitle-toolbox.ico"
+        try:
+            icon_path = resource_path(icon_name)
+            if os.path.exists(icon_path):
+                self.root.iconbitmap(icon_path)
+            else:
+                parent_icon = os.path.join(os.path.dirname(os.path.dirname(icon_path)), icon_name)
+                if os.path.exists(parent_icon):
+                     self.root.iconbitmap(parent_icon)
+        except Exception as e:
+            print(f"警告: 无法加载图标 - {e}")
+
         win_w, win_h = 700, 450 
         cx = int(self.root.winfo_screenwidth()/2 - win_w/2)
         cy = int(self.root.winfo_screenheight()/2 - win_h/2)
@@ -56,24 +81,23 @@ class UnifiedApp:
         
         self.current_preset_name = tk.StringVar(value="默认")
         self.task_mode = tk.StringVar(value="ASS")
+        
         self.do_pdf = tk.BooleanVar(value=True)
         self.do_word = tk.BooleanVar(value=True)
+        self.do_txt = tk.BooleanVar(value=True) 
 
-        # 初始化当前样式数据（即使不打开窗口也需要这些数据）
         curr_data = self.presets.get("默认", {"kor": self.default_kor_raw, "chn": self.default_chn_raw})
         self.kor_parsed = self.parse_ass_style(curr_data["kor"])
         self.chn_parsed = self.parse_ass_style(curr_data["chn"])
         
-        # 用于存储配置窗口的引用，防止重复打开
         self.config_window = None
-        # 用于存储配置窗口内的面板对象
         self.kor_panel_ui = None
         self.chn_panel_ui = None
 
         self.setup_ui()
+        self.root.deiconify()
 
     def setup_ui(self):
-        # === 全局设置区域 ===
         global_frame = tk.LabelFrame(self.root, text="全局设置", font=self.ui_font, padx=10, pady=5)
         global_frame.pack(fill="x", padx=15, pady=5)
 
@@ -90,7 +114,6 @@ class UnifiedApp:
 
         tk.Label(path_frame, text="工作目录:", font=self.ui_font_bold).pack(side="right")
 
-        # === 任务选项区域 ===
         opt_frame = tk.Frame(global_frame)
         opt_frame.pack(fill="x", pady=5)
         
@@ -98,21 +121,20 @@ class UnifiedApp:
         tk.Radiobutton(opt_frame, text="合并/转换字幕", variable=self.task_mode, value="ASS", font=self.ui_font).pack(side="left")
         tk.Radiobutton(opt_frame, text="生成台词剧本", variable=self.task_mode, value="PDF", font=self.ui_font).pack(side="left", padx=10)
 
-        # === 格式与功能按钮区域 ===
         func_frame = tk.Frame(global_frame)
         func_frame.pack(fill="x", pady=5)
 
         tk.Label(func_frame, text="剧本格式:", font=self.ui_font_small).pack(side="left", padx=(0, 0))
-        tk.Checkbutton(func_frame, text="PDF", variable=self.do_pdf, font=self.ui_font_small).pack(side="left")
+        tk.Checkbutton(func_frame, text="TXT", variable=self.do_txt, font=self.ui_font_small).pack(side="left")
         tk.Checkbutton(func_frame, text="Word", variable=self.do_word, font=self.ui_font_small).pack(side="left", padx=5)
+        tk.Checkbutton(func_frame, text="PDF", variable=self.do_pdf, font=self.ui_font_small).pack(side="left", padx=5)
 
-        # --- 修改点：这里放置两个工具按钮 ---
-        tk.Button(func_frame, text="🈴 Word合并", command=self.start_win32_thread, bg="#2b5797", fg="white", font=self.ui_font_small).pack(side="right", padx=5)
-        # 新增：ASS配置按钮
+        # --- 功能按钮区 ---
+        tk.Button(func_frame, text="PDF合并", command=self.start_pdf_merge_thread, bg="#d93025", fg="white", font=self.ui_font_small).pack(side="right", padx=5)
+        tk.Button(func_frame, text="Word合并", command=self.start_win32_thread, bg="#2b5797", fg="white", font=self.ui_font_small).pack(side="right", padx=5)
+        tk.Button(func_frame, text="TXT合并", command=self.start_txt_merge_thread, bg="#fff9c4", font=self.ui_font_small).pack(side="right", padx=5)
         tk.Button(func_frame, text="🎨 ASS样式配置", command=self.open_ass_config_window, bg="#FF9800", font=self.ui_font_small).pack(side="right", padx=5)
 
-
-        # === 开始按钮与日志 ===
         self.start_btn = tk.Button(self.root, text="开始处理", command=self.start_thread, bg="#0078d7", fg="white", font=self.ui_font_bold, width=20, height=1)
         self.start_btn.pack(pady=5, padx=20)
         
@@ -120,28 +142,29 @@ class UnifiedApp:
         self.progress.pack(fill="x", padx=20, pady=5)
         
         self.log_area = scrolledtext.ScrolledText(self.root, height=10, font=("Consolas", 9), state='disabled', bg="#f8f9fa")
-        self.log_area.pack(fill="both", padx=20, pady=10, expand=True)
+        self.log_area.pack(fill="both", padx=20, pady=5, expand=True)
 
-    # ==========================================
-    # 新增：ASS 配置独立窗口逻辑
-    # ==========================================
     def open_ass_config_window(self):
-        # 防止重复打开
         if self.config_window is not None and self.config_window.winfo_exists():
             self.config_window.lift()
             return
 
         self.config_window = tk.Toplevel(self.root)
-        self.config_window.title("ASS字幕样式配置")
+        self.config_window.withdraw()
+        self.config_window.title("ASS 字幕样式配置")
+        try:
+            icon_path = resource_path("subtitle-toolbox.ico")
+            if os.path.exists(icon_path):
+                self.config_window.iconbitmap(icon_path)
+        except: pass
+        
         self.config_window.geometry("900x250")
         
-        # 居中显示
         win_w, win_h = 900, 250
         cx = int(self.root.winfo_screenwidth()/2 - win_w/2)
         cy = int(self.root.winfo_screenheight()/2 - win_h/2)
         self.config_window.geometry(f'{win_w}x{win_h}+{cx}+{cy}')
 
-        # === 方案管理区域 ===
         preset_frame = tk.Frame(self.config_window, pady=10)
         preset_frame.pack(fill="x", padx=10)
         
@@ -155,21 +178,19 @@ class UnifiedApp:
         tk.Button(preset_frame, text="❌ 删除方案", command=self.delete_preset, bg="#ef090d", fg="white", font=self.ui_font_small).pack(side="left", padx=5)
         tk.Button(preset_frame, text="📝 打开配置文件", command=self.open_config_file, bg="#FEE60A", font=self.ui_font_small).pack(side="left", padx=5)
 
-        # === 样式面板区域 ===
         panels_frame = tk.Frame(self.config_window)
         panels_frame.pack(fill="both", expand=True, padx=10, pady=5)
         
-        # 创建面板，并将 UI 对象保存到 self 方便更新
-        # 注意：这里传入的 parent 是 panels_frame (属于新窗口)
-        self.kor_panel_ui = self.create_style_panel(panels_frame, "外语样式 (韩语/英语)", self.kor_parsed, "안녕하세요 Hello")
+        self.kor_panel_ui = self.create_style_panel(panels_frame, "外语样式", self.kor_parsed, "안녕하세요 こんにちは Hello")
         self.chn_panel_ui = self.create_style_panel(panels_frame, "中文样式", self.chn_parsed, "你好世界 Hello")
-
-    # ==========================================
-    # 其他辅助方法
-    # ==========================================
+        
+        self.config_window.deiconify()
 
     def log(self, message):
-        self.log_area.config(state='normal'); self.log_area.insert(tk.END, str(message) + "\n"); self.log_area.see(tk.END); self.log_area.config(state='disabled')
+        self.log_area.config(state='normal')
+        self.log_area.insert(tk.END, str(message) + "\n")
+        self.log_area.see(tk.END)
+        self.log_area.config(state='disabled')
 
     def browse_folder(self):
         current_path = self.path_var.get().strip()
@@ -180,7 +201,9 @@ class UnifiedApp:
     def open_current_folder(self):
         p = self.path_var.get().strip()
         if os.path.isdir(p):
-            try: os.startfile(p); self.log(f"📂 已打开文件夹: {p}")
+            try: 
+                os.startfile(p)
+                self.log(f"📂 已打开文件夹: {p}")
             except Exception as e: self.log(f"❌ 打开失败: {e}")
         else: messagebox.showwarning("错误", "目录不存在！")
 
@@ -247,7 +270,6 @@ class UnifiedApp:
             d = self.presets[name]
             self.kor_parsed = self.parse_ass_style(d["kor"])
             self.chn_parsed = self.parse_ass_style(d["chn"])
-            # 只有当配置窗口打开时，才去更新UI，否则会报错
             if self.config_window is not None and self.config_window.winfo_exists():
                 self.update_panel_ui(self.kor_panel_ui, self.kor_parsed)
                 self.update_panel_ui(self.chn_panel_ui, self.chn_parsed)
@@ -256,22 +278,14 @@ class UnifiedApp:
         if "Style:" not in style_line: return self.parse_ass_style(self.default_kor_raw)
         parts = style_line.replace("Style:", "").strip().split(',')
         while len(parts) < 23: parts.append("0")
-        return {"font": parts[1].strip(), "size": parts[2].strip(), "color": parts[3].strip(), "bold": 1 if parts[7].strip() == "-1" else 0, "ml": parts[19].strip(), "mr": parts[20].strip(), "mv": parts[21].strip(), "raw": style_line.strip()}
+        return {"font": parts[1].strip(), "size": parts[2].strip(), "color": parts[3].strip(), 
+                "bold": 1 if parts[7].strip() == "-1" else 0, "ml": parts[19].strip(), 
+                "mr": parts[20].strip(), "mv": parts[21].strip(), "raw": style_line.strip()}
 
     def construct_style_line(self, original_raw, ui, style_name):
-        # 如果配置窗口没打开，或者UI对象为空，则使用当前解析的数据生成字符串
-        if ui is None:
-            # 这里是一个简化处理：如果UI不存在，我们应该直接使用 self.kor_parsed 里的数据
-            # 但为了简单，ASS逻辑里我们还是应该依赖最新的 parse 数据
-            # 下面的逻辑是假设 UI 存在时的读取。如果 UI 不存在，我们需要另一种方式更新 Style 字符串。
-            # 不过，通常我们只在 process 时生成 style line，那时我们可以直接读变量。
-            # 为了兼容 process 函数调用，这里做个特殊的判断
-            pass 
-        
         parts = original_raw.replace("Style:", "").strip().split(',')
         while len(parts) < 23: parts.append("0")
         
-        # 核心修改：如果UI存在，从UI读取；如果不存在，从 self.xxx_parsed 内存变量读取
         if ui:
             parts[0] = style_name
             parts[1] = ui["font_var"].get()
@@ -282,7 +296,6 @@ class UnifiedApp:
             parts[20] = ui["mr_var"].get()
             parts[21] = ui["mv_var"].get()
         else:
-            # 从内存数据读取 (当没有打开配置窗口直接点开始处理时)
             data = self.kor_parsed if "KOR" in style_name else self.chn_parsed
             parts[0] = style_name
             parts[1] = data["font"]
@@ -315,12 +328,20 @@ class UnifiedApp:
             self.on_preset_change(None)
 
     def create_style_panel(self, parent, title, initial_data, preview_text):
-        panel = tk.LabelFrame(parent, text=title, font=self.ui_font, padx=10, pady=5); panel.pack(side="left", fill="both", expand=True, padx=8)
-        vars = {"font_var": tk.StringVar(value=initial_data["font"]), "size_var": tk.StringVar(value=initial_data["size"]), "color_var": tk.StringVar(value=initial_data["color"]), "ml_var": tk.StringVar(value=initial_data["ml"]), "mr_var": tk.StringVar(value=initial_data["mr"]), "mv_var": tk.StringVar(value=initial_data["mv"]), "bold_var": tk.IntVar(value=initial_data["bold"])}
+        panel = tk.LabelFrame(parent, text=title, font=self.ui_font, padx=10, pady=5)
+        panel.pack(side="left", fill="both", expand=True, padx=8)
         
-        # 实时更新 self.xxx_parsed 数据，确保即使关闭窗口，数据也是最新的
+        vars = {
+            "font_var": tk.StringVar(value=initial_data["font"]), 
+            "size_var": tk.StringVar(value=initial_data["size"]), 
+            "color_var": tk.StringVar(value=initial_data["color"]), 
+            "ml_var": tk.StringVar(value=initial_data["ml"]), 
+            "mr_var": tk.StringVar(value=initial_data["mr"]), 
+            "mv_var": tk.StringVar(value=initial_data["mv"]), 
+            "bold_var": tk.IntVar(value=initial_data["bold"])
+        }
+        
         def update_data(*args):
-            # 将 UI 的值回写到 parsed 字典中
             initial_data["font"] = vars["font_var"].get()
             initial_data["size"] = vars["size_var"].get()
             initial_data["color"] = vars["color_var"].get()
@@ -333,26 +354,49 @@ class UnifiedApp:
             if isinstance(v, tk.StringVar) or isinstance(v, tk.IntVar):
                 v.trace_add("write", update_data)
 
-        f_row = tk.Frame(panel); f_row.pack(fill="x", pady=2); tk.Label(f_row, text="字体:", font=self.ui_font, width=4, anchor="w").pack(side="left")
-        combo = ttk.Combobox(f_row, textvariable=vars["font_var"], values=self.system_fonts, state="readonly", font=self.ui_font); combo.pack(side="left", fill="x", expand=True)
-        p_label = tk.Label(panel, text=preview_text, font=("Arial", 10), bg="white", relief="sunken", height=1); p_label.pack(fill="x", pady=(2, 8))
+        f_row = tk.Frame(panel); f_row.pack(fill="x", pady=2)
+        tk.Label(f_row, text="字体:", font=self.ui_font, width=4, anchor="w").pack(side="left")
+        
+        combo = ttk.Combobox(f_row, textvariable=vars["font_var"], values=self.system_fonts, state="readonly", font=self.ui_font)
+        combo.pack(side="left", fill="x", expand=True)
+        
+        p_label = tk.Label(panel, text=preview_text, font=("Arial", 10), bg="white", relief="sunken", height=1)
+        p_label.pack(fill="x", pady=(2, 8))
         
         def update_p(*args):
-            try: f, sz = vars["font_var"].get(), int(float(vars["size_var"].get())); w = "bold" if vars["bold_var"].get() else "normal"; p_label.config(font=(f, min(sz, 28), w))
+            try: 
+                f, sz = vars["font_var"].get(), int(float(vars["size_var"].get()))
+                w = "bold" if vars["bold_var"].get() else "normal"
+                p_label.config(font=(f, min(sz, 28), w))
             except: pass
         combo.bind("<<ComboboxSelected>>", update_p)
         
-        param_row = tk.Frame(panel); param_row.pack(fill="x", pady=2); left = tk.Frame(param_row); left.pack(side="left")
+        param_row = tk.Frame(panel); param_row.pack(fill="x", pady=2)
+        left = tk.Frame(param_row); left.pack(side="left")
+        
         tk.Label(left, text="号:", font=self.ui_font).pack(side="left")
         tk.Spinbox(left, from_=1, to=200, textvariable=vars["size_var"], width=3, font=self.ui_font, command=update_p).pack(side="left", padx=(0,5))
         tk.Checkbutton(left, text="B", variable=vars["bold_var"], font=("Georgia", 10, "bold"), command=update_p).pack(side="left", padx=(0,5))
-        c_btn = tk.Label(left, width=2, relief="ridge", borderwidth=1); c_btn.pack(side="left", padx=(2,2), fill="y")
+        
+        c_btn = tk.Label(left, width=2, relief="ridge", borderwidth=1)
+        c_btn.pack(side="left", padx=(2,2), fill="y")
         c_btn.bind("<Button-1>", lambda e: self.pick_color(vars["color_var"], c_btn))
+        
         tk.Entry(left, textvariable=vars["color_var"], font=self.ui_font_small, width=11).pack(side="left")
-        self.sync_color(vars["color_var"], c_btn); tk.Label(param_row, text="").pack(side="left", expand=True); right = tk.Frame(param_row); right.pack(side="right")
-        def qs(txt, v): tk.Label(right, text=txt, font=self.ui_font_small).pack(side="left", padx=(3,0)); tk.Spinbox(right, from_=0, to=500, textvariable=v, width=3, font=self.ui_font).pack(side="left")
+        self.sync_color(vars["color_var"], c_btn)
+        
+        tk.Label(param_row, text="").pack(side="left", expand=True)
+        right = tk.Frame(param_row); right.pack(side="right")
+        
+        def qs(txt, v): 
+            tk.Label(right, text=txt, font=self.ui_font_small).pack(side="left", padx=(3,0))
+            tk.Spinbox(right, from_=0, to=500, textvariable=v, width=3, font=self.ui_font).pack(side="left")
+        
         qs("L:", vars["ml_var"]); qs("R:", vars["mr_var"]); qs("V:", vars["mv_var"])
-        update_p(); vars.update({"c_btn": c_btn, "update_func": update_p}); return vars
+        
+        update_p()
+        vars.update({"c_btn": c_btn, "update_func": update_p})
+        return vars
 
     def update_panel_ui(self, ui, data):
         if ui:
@@ -367,8 +411,11 @@ class UnifiedApp:
     def pick_color(self, var, btn):
         code = colorchooser.askcolor()
         if code[1]:
-            rgb = code[0]; m = re.search(r'&H([0-9A-F]{2})', var.get().upper()); alpha = m.group(1) if m else "00"
-            var.set(f"&H{alpha}{int(rgb[2]):02X}{int(rgb[1]):02X}{int(rgb[0]):02X}&"); btn.config(bg=code[1])
+            rgb = code[0]
+            m = re.search(r'&H([0-9A-F]{2})', var.get().upper())
+            alpha = m.group(1) if m else "00"
+            var.set(f"&H{alpha}{int(rgb[2]):02X}{int(rgb[1]):02X}{int(rgb[0]):02X}&")
+            btn.config(bg=code[1])
 
     def start_thread(self): 
         threading.Thread(target=self.process, daemon=True).start()
@@ -379,6 +426,20 @@ class UnifiedApp:
             messagebox.showerror("错误", "无效的目录")
             return
         threading.Thread(target=run_win32_merge_task, args=(target_dir, self.log, self.progress, self.root), daemon=True).start()
+
+    def start_pdf_merge_thread(self):
+        target_dir = self.path_var.get().strip()
+        if not target_dir or not os.path.exists(target_dir):
+            messagebox.showerror("错误", "无效的目录")
+            return
+        threading.Thread(target=run_pdf_merge_task, args=(target_dir, self.log, self.progress, self.root), daemon=True).start()
+
+    def start_txt_merge_thread(self):
+        target_dir = self.path_var.get().strip()
+        if not target_dir or not os.path.exists(target_dir):
+            messagebox.showerror("错误", "无效的目录")
+            return
+        threading.Thread(target=run_txt_merge_task, args=(target_dir, self.log, self.progress, self.root), daemon=True).start()
 
     def process(self):
         target_dir = self.path_var.get().strip()
@@ -392,23 +453,27 @@ class UnifiedApp:
         try:
             mode = self.task_mode.get()
             if mode == "ASS":
-                # 修改：这里传入 None 也是安全的，因为 construct_style_line 已经做了处理
                 style_kor = self.construct_style_line(self.kor_parsed["raw"], self.kor_panel_ui, "KOR - Noto Serif KR")
                 style_chn = self.construct_style_line(self.chn_parsed["raw"], self.chn_panel_ui, "CHN - Drama")
                 run_ass_task(target_dir, {"kor": style_kor, "chn": style_chn}, self.log, self.progress, self.root)
                 
             elif mode == "PDF":
-                if not self.do_pdf.get() and not self.do_word.get():
+                if not self.do_pdf.get() and not self.do_word.get() and not self.do_txt.get():
                     self.log("⚠️ 未勾选任何导出格式。")
                 else:
                     if self.do_pdf.get(): 
                         run_pdf_task(target_dir, self.log, self.progress, self.root)
                     if self.do_word.get(): 
                         run_word_creation_task(target_dir, self.log, self.progress, self.root)
+                    if self.do_txt.get(): 
+                        # --- 修改点 2: 勾选 TXT 时，调用 SRT->TXT 生成函数 ---
+                        run_txt_creation_task(target_dir, self.log, self.progress, self.root)
                         
             self.log("✅ 任务完成！")
         except Exception as e:
             self.log(f"❌ 严重错误: {e}")
+            import traceback
+            traceback.print_exc()
         finally:
             self.start_btn.config(state='normal')
             self.progress["value"] = 0
@@ -417,6 +482,3 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = UnifiedApp(root)
     root.mainloop()
-    
-#打包
-#python -m PyInstaller --onefile --windowed --name="字幕工具箱" --icon="E:\OneDrive\PythonProject\Merge Subtitles.ico" --add-data "logic;logic" --hidden-import="reportlab" --hidden-import="reportlab.platypus" --hidden-import="reportlab.lib.styles" --hidden-import="reportlab.platypus.tableofcontents" --hidden-import="win32timezone" --hidden-import="pysrt" --hidden-import="pysubs2" --hidden-import="docx" --hidden-import="docxcompose" --distpath="D:\" --workpath="D:\Temp_Build" --clean main.py

@@ -1,6 +1,5 @@
-#PDF 逻辑文件
-
 import os
+import sys
 import pysrt
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Flowable, Frame, PageTemplate, NextPageTemplate
 from reportlab.platypus.tableofcontents import TableOfContents
@@ -8,9 +7,51 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import mm
-from reportlab.lib.enums import TA_CENTER
-from config import FONT_NAME_BODY, FONT_NAME_ENG
-from utils import clean_filename_title, clean_subtitle_text_common, generate_output_name
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
+
+# 字体处理依赖
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
+# 尝试从 utils 导入
+try:
+    from utils import clean_filename_title, clean_subtitle_text_common, generate_output_name
+except ImportError:
+    # 后备逻辑
+    def clean_filename_title(n): return os.path.splitext(n)[0]
+    def clean_subtitle_text_common(t): return t.strip()
+    def generate_output_name(f, e): return "merged" + e
+
+# --- 1. 字体注册 (回归简单暴力版) ---
+def register_fonts():
+    """
+    优先注册韩文/中文字体，防止乱码。
+    """
+    font_name = "CustomFont"
+    
+    # Windows 默认字体目录
+    win_font_dir = r"C:\Windows\Fonts"
+    
+    # 候选列表：优先 Malgun (韩文支持最好), 其次 微软雅黑 (TTF版), 最后 黑体
+    # 注意：ReportLab 对 .ttc (字体集) 支持不好，尽量用 .ttf
+    candidates = ["malgun.ttf", "msyh.ttf", "simhei.ttf", "arialuni.ttf"]
+    
+    selected_path = None
+    
+    for filename in candidates:
+        path = os.path.join(win_font_dir, filename)
+        if os.path.exists(path):
+            try:
+                # 尝试注册
+                pdfmetrics.registerFont(TTFont(font_name, path))
+                # 如果成功，就用这个
+                return font_name, "Helvetica"
+            except Exception:
+                continue
+                
+    # 如果都失败，返回 Helvetica (会乱码，但在控制台打印警告)
+    print("⚠️ 严重警告: 未能加载任何中韩文字体！")
+    return "Helvetica", "Helvetica"
 
 # --- ReportLab 辅助类 ---
 class Bookmark(Flowable):
@@ -46,11 +87,18 @@ def footer_content(canvas, doc):
     pg = physical_pg - offset
     if pg > 0:
         canvas.saveState()
-        canvas.setFont(FONT_NAME_ENG, 9)
+        canvas.setFont("Helvetica", 9)
         canvas.drawCentredString(A4[0]/2, 10*mm, str(pg))
         canvas.restoreState()
 
+# --- 2. 核心生成逻辑 ---
 def run_pdf_task(target_dir, log_func, progress_bar, root):
+    """
+    生成 PDF，严格保持台词分行，不合并段落。
+    """
+    # 注册字体
+    FONT_NAME_BODY, FONT_NAME_ENG = register_fonts()
+    
     files = [f for f in os.listdir(target_dir) if f.lower().endswith('.srt')]
     files.sort()
     if not files:
@@ -69,9 +117,37 @@ def run_pdf_task(target_dir, log_func, progress_bar, root):
     ])
     
     styles = getSampleStyleSheet()
-    h1 = ParagraphStyle('ChapterTitle', parent=styles['Heading1'], fontName=FONT_NAME_BODY, fontSize=16, leading=20, spaceAfter=10, textColor=colors.darkblue)
-    toc_h = ParagraphStyle('TOCHeader', parent=styles['Heading1'], fontName=FONT_NAME_ENG, fontSize=20, leading=22, spaceAfter=20, alignment=TA_CENTER)
-    body = ParagraphStyle('SubtitleBody', parent=styles['Normal'], fontName=FONT_NAME_BODY, fontSize=10, leading=14, spaceAfter=4)
+    
+    h1 = ParagraphStyle(
+        'ChapterTitle', 
+        parent=styles['Heading1'], 
+        fontName=FONT_NAME_BODY, 
+        fontSize=16, 
+        leading=20, 
+        spaceAfter=10, 
+        textColor=colors.darkblue
+    )
+    
+    toc_h = ParagraphStyle(
+        'TOCHeader', 
+        parent=styles['Heading1'], 
+        fontName=FONT_NAME_ENG, 
+        fontSize=20, 
+        leading=22, 
+        spaceAfter=20, 
+        alignment=TA_CENTER
+    )
+    
+    # 正文样式：左对齐，段后距设为 4，保证每句台词分开
+    body = ParagraphStyle(
+        'SubtitleBody', 
+        parent=styles['Normal'], 
+        fontName=FONT_NAME_BODY, 
+        fontSize=10, 
+        leading=14, 
+        spaceAfter=4, 
+        alignment=TA_LEFT
+    )
     
     story = [Bookmark("TOC"), OutlineEntry("Content", "TOC"), Paragraph("<b>Content</b>", toc_h)]
     toc = TableOfContents(); toc.dotsMinLevel = 0
@@ -90,17 +166,76 @@ def run_pdf_task(target_dir, log_func, progress_bar, root):
         story.append(p); story.append(Spacer(1, 10))
         
         try: subs = pysrt.open(os.path.join(target_dir, fname), encoding='utf-8')
-        except: subs = pysrt.open(os.path.join(target_dir, fname), encoding='gbk')
+        except: 
+            try: subs = pysrt.open(os.path.join(target_dir, fname), encoding='gbk')
+            except: subs = []
         
+        # --- 逐行写入逻辑 ---
         for s in subs:
             txt = clean_subtitle_text_common(s.text)
             if not txt: continue
-            safe = txt.replace('<','&lt;').replace('>','&gt;')
-            story.append(Paragraph(f"<b>[{str(s.start)[:8]}]</b>  {safe}", body))
+            
+            # HTML 安全转义
+            safe_txt = txt.replace('&', '&amp;').replace('<','&lt;').replace('>','&gt;')
+            
+            # 获取时间戳 [00:00:25]
+            time_str = str(s.start)[:8]
+            
+            # 直接创建段落，确保不乱码，不合并
+            line_content = f"<b>[{time_str}]</b>&nbsp;&nbsp;{safe_txt}"
+            story.append(Paragraph(line_content, body))
         
         if i < len(files)-1: story.append(PageBreak())
         progress_bar["value"] = i + 1
         root.update_idletasks()
         
-    doc.multiBuild(story)
-    log_func(f"[PDF] 生成完毕: {out_name}")
+    log_func(f"[PDF] 正在渲染页面，请稍候...")
+    try:
+        doc.multiBuild(story)
+        log_func(f"[SRT->PDF] ✅ 剧本生成成功! 文件: {out_name}")
+    except Exception as e:
+        log_func(f"❌ PDF 生成失败: {e}")
+        if "Permission denied" in str(e):
+            log_func("⚠️ 请先关闭已打开的 PDF 文件！")
+
+# PDF 合并逻辑
+def run_pdf_merge_task(target_dir, log_func, progress_bar, root):
+    files = [f for f in os.listdir(target_dir) if f.lower().endswith('.pdf') and not f.startswith("Merged_")]
+    files.sort()
+    
+    if not files:
+        log_func("[PDF合并] 未找到 PDF 文件 (已忽略以 Merged_ 开头的文件)。")
+        return
+
+    log_func(f"[PDF合并] 发现 {len(files)} 个文件，准备合并...")
+
+    try:
+        try:
+            from pypdf import PdfWriter, PdfReader
+        except ImportError:
+            from PyPDF2 import PdfWriter, PdfReader
+    except ImportError:
+        log_func("[错误] 缺少 PDF 库，请运行: pip install pypdf")
+        return
+
+    merger = PdfWriter()
+    progress_bar["maximum"] = len(files)
+
+    try:
+        for i, pdf in enumerate(files):
+            path = os.path.join(target_dir, pdf)
+            merger.append(path)
+            progress_bar["value"] = i + 1
+            root.update_idletasks()
+        
+        out_name = os.path.join(target_dir, "全剧本.pdf")
+        with open(out_name, "wb") as f_out:
+            merger.write(f_out)
+        
+        log_func(f"[PDF合并] ✅ 成功! 输出文件: {os.path.basename(out_name)}")
+        
+    except Exception as e:
+        log_func(f"[PDF合并] ❌ 失败: {str(e)}")
+    finally:
+        merger.close()
+        progress_bar["value"] = 0
