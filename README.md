@@ -58,12 +58,6 @@ Bash
 
 pip install pysrt reportlab python-docx pywin32 pypdf
 3. 运行程序
-Bash
-
-python main.py
-📂 项目结构 (Project Structure)
-![Uploading image.png…]()
-
 
 📦 打包为 EXE (Building)
 如果你想将程序打包为独立的 .exe 文件分享给他人，请使用 PyInstaller。
