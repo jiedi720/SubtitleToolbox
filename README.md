@@ -62,21 +62,8 @@ Bash
 
 python main.py
 📂 项目结构 (Project Structure)
-v1.0 版本采用了全新的模块化设计：
+![Uploading image.png…]()
 
-Plaintext
-
-subtitle_toolbox/
-├── main.py              # 程序入口，GUI 界面逻辑
-├── utils.py             # 通用工具箱 (文件名清洗、文本清洗、编码检测)
-├── config.py            # 配置文件 (字体路径、默认设置)
-├── logic/               # 核心业务逻辑目录
-│   ├── ass_logic.py     # ASS 样式处理
-│   ├── pdf_logic.py     # PDF 生成与合并 (ReportLab)
-│   ├── word_logic.py    # Word 生成 (docx) 与合并 (Win32)
-│   └── txt_logic.py     # TXT 生成与合并
-├── subtitle-toolbox.ico # 程序图标
-└── update.bat           # GitHub 一键更新脚本
 
 📦 打包为 EXE (Building)
 如果你想将程序打包为独立的 .exe 文件分享给他人，请使用 PyInstaller。
