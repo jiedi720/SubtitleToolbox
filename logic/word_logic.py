@@ -133,7 +133,7 @@ def run_win32_merge_task(target_dir, log_func, progress_bar, root):
             progress_bar["value"] = index + 1
             root.update_idletasks()
             
-        output_name = f"全剧本_Word合并.docx"
+        output_name = f"全剧本.docx"
         output_path = os.path.join(target_dir, output_name)
         
         new_doc.SaveAs2(output_path, FileFormat=12)

@@ -5,7 +5,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
 # 全局常量
-CONFIG_FILE = "字幕工具箱.ini"
+CONFIG_FILE = "SubtitleToolbox.ini"
 
 # 字体配置
 FONT_NAME_BODY = 'Batang'
