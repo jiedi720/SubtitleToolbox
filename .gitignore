@@ -1,0 +1,16 @@
+# 忽略编译生成的文件夹
+build/
+dist/
+D:/Temp_Build/
+字幕工具箱_发布版/
+
+# 忽略 PyInstaller 的配置文件和临时文件
+*.spec
+__pycache__/
+
+# 忽略用户个人的配置文件（可选，如果你希望上传默认配置则去掉这行）
+*.ini
+
+# 忽略 VSCode 或 PyCharm 的配置文件夹
+.vscode/
+.idea/
