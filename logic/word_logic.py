@@ -1,154 +1,167 @@
 import os
 import glob
-import pysrt
-import threading
-from tkinter import messagebox
 from docx.shared import Pt, RGBColor, Mm
+# 导入对齐常量
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 
-# 尝试导入依赖
-try:
+try: 
     from docx import Document
     HAS_DOCX = True
-except ImportError:
+except ImportError: 
     HAS_DOCX = False
 
-try:
+try: 
     import win32com.client as win32
     import pythoncom
     HAS_WIN32 = True
-except ImportError:
+except ImportError: 
     HAS_WIN32 = False
 
-# 尝试从 utils 导入
-try:
-    from utils import clean_filename_title, clean_subtitle_text_common, generate_output_name
-except ImportError:
-    # 后备逻辑
-    def clean_filename_title(n): return os.path.splitext(n)[0]
-    def clean_subtitle_text_common(t): return t.strip()
-    def generate_output_name(files, ext): return "merged" + ext
+try: 
+    from utils import (
+        clean_filename_title, 
+        generate_output_name, 
+        get_save_path, 
+        get_organized_path,
+        smart_group_files, 
+        find_files_recursively, 
+        parse_subtitle_to_list 
+    )
+except ImportError: 
+    pass
 
-def run_word_creation_task(target_dir, log_func, progress_bar, root):
-    """
-    任务1: 读取目录下所有 SRT，生成一个汇总的 Word 文档 (使用 python-docx)
-    """
-    if not HAS_DOCX:
-        log_func("错误: 缺少 python-docx 库")
-        return
-
-    files = [f for f in os.listdir(target_dir) if f.lower().endswith('.srt')]
-    files.sort()
-    if not files:
-        log_func("[Word] 未找到 SRT 文件。")
-        return
-
-    out_name = generate_output_name(files, ".docx")
-    out_path = os.path.join(target_dir, out_name)
+# ==============================================================================
+# 任务 1: 字幕转 Word (页眉居中 + 分节控制)
+# ==============================================================================
+def run_word_creation_task(target_dir, log_func, progress_bar, root, batch_size=0, output_dir=None):
+    if not HAS_DOCX: return log_func("❌ 错误: 缺少 python-docx 库")
     
-    doc = Document()
-    for section in doc.sections:
-        section.top_margin = Mm(25); section.bottom_margin = Mm(25)
-        section.left_margin = Mm(25); section.right_margin = Mm(25)
+    log_func(f"[Word] 扫描: {target_dir}")
+    files = find_files_recursively(target_dir, ('.srt', '.vtt', '.ass'))
+    if not files: return log_func("[Word] ❌ 未找到字幕文件。")
 
+    if batch_size > 0: log_func(f"[SRT->Word] 分组模式: {batch_size} 集/组")
+    
+    file_groups = smart_group_files(files, batch_size)
     progress_bar["maximum"] = len(files)
-    
-    for i, fname in enumerate(files):
-        dname = clean_filename_title(fname)
-        log_func(f"[Word] 正在写入: {dname}")
-        heading = doc.add_heading(dname, level=1)
-        if heading.runs:
-            run = heading.runs[0]
-            run.font.color.rgb = RGBColor(0, 51, 102)
+    count = 0
 
-        try: subs = pysrt.open(os.path.join(target_dir, fname), encoding='utf-8')
-        except: 
-            try: subs = pysrt.open(os.path.join(target_dir, fname), encoding='gbk')
-            except: subs = []
+    base_output_dir = output_dir if output_dir else os.path.join(target_dir, "script")
 
-        for s in subs:
-            txt = clean_subtitle_text_common(s.text)
-            if not txt: continue
-            
-            p = doc.add_paragraph()
-            p.paragraph_format.space_after = Pt(4)
-            
-            time_run = p.add_run(f"[{str(s.start)[:8]}]  ")
-            time_run.bold = True; time_run.font.size = Pt(10)
-            text_run = p.add_run(txt); text_run.font.size = Pt(10)
-
-        if i < len(files)-1: doc.add_page_break()
-        progress_bar["value"] = i + 1
-        root.update_idletasks()
+    for group in file_groups:
+        if not group: continue
+        out_name = generate_output_name([os.path.basename(f) for f in group], ".docx")
+        out_path = get_organized_path(base_output_dir, out_name)
         
-    doc.save(out_path)
-    log_func(f"[SRT->Word] ✅ 剧本生成成功! 文件: {out_name}")
-
-def run_win32_merge_task(target_dir, log_func, progress_bar, root):
-    """
-    任务2: 调用本地 Word 合并目录下的所有 .docx 文件
-    """
-    if not HAS_WIN32:
-        messagebox.showerror("错误", "未安装 pywin32。\n请运行: pip install pywin32")
-        return
+        log_func(f"生成中: {out_name}")
         
-    # 线程必须初始化 COM
+        try:
+            doc = Document()
+            
+            for i, fp in enumerate(group):
+                fname = os.path.basename(fp)
+                title_text = clean_filename_title(fname)
+
+                # 使用分节符 (Section) 代替分页符，以便每集有独立页眉
+                if i == 0:
+                    section = doc.sections[0]
+                else:
+                    section = doc.add_section()
+
+                # 1. 设置页边距
+                section.top_margin = section.bottom_margin = Mm(25)
+                section.left_margin = section.right_margin = Mm(25)
+
+                # 2. 设置页眉
+                # 取消 "链接到前一节"，确保每集页眉不同
+                section.header.is_linked_to_previous = False
+                
+                header_para = section.header.paragraphs[0]
+                header_para.clear() 
+                
+                # 添加文字 (灰色，小号)
+                run = header_para.add_run(title_text)
+                run.font.size = Pt(9)
+                run.font.color.rgb = RGBColor(128, 128, 128) # 灰色
+                
+                # [修改] 设置为居中对齐 (CENTER = 1)
+                header_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+                # 3. 添加正文大标题
+                heading = doc.add_heading(title_text, level=1)
+                if heading.runs:
+                    heading.runs[0].font.color.rgb = RGBColor(0, 51, 102) 
+                
+                # 4. 写入内容
+                content_list = parse_subtitle_to_list(fp)
+                
+                if not content_list:
+                    p = doc.add_paragraph("[无对白内容]")
+                else:
+                    for time_str, text in content_list:
+                        p = doc.add_paragraph()
+                        p.paragraph_format.space_after = Pt(4)
+                        
+                        r1 = p.add_run(f"[{time_str}]  ")
+                        r1.bold = True
+                        r1.font.size = Pt(10)
+                        
+                        r2 = p.add_run(text)
+                        r2.font.size = Pt(10)
+
+                count += 1
+                progress_bar["value"] = count
+                root.update_idletasks()
+
+            doc.save(out_path)
+            
+        except Exception as e: 
+            log_func(f"❌ 保存失败 {out_name}: {e}")
+
+    log_func(f"[SRT->Word] ✅ 完成！保存目录: {base_output_dir}\\word")
+    progress_bar["value"] = 0
+
+# ==============================================================================
+# 任务 2: Word 合并 (Win32)
+# ==============================================================================
+def run_win32_merge_task(target_dir, log_func, progress_bar, root, output_dir=None):
+    if not HAS_WIN32: return log_func("错误: 未安装 pywin32")
     pythoncom.CoInitialize()
     
-    log_func(f"[Word合并] 正在扫描目录: {target_dir}")
-    
-    all_files = glob.glob(os.path.join(target_dir, "*.docx"))
-    # 排除临时文件和已合并文件
-    files = [f for f in all_files if not os.path.basename(f).startswith("~$") and "全剧本" not in f and "merged" not in f]
-    files.sort()
-    
-    if not files:
-        log_func("[Word合并] 未找到待合并的 .docx 文件")
-        pythoncom.CoUninitialize()
-        return
+    base_dir = output_dir if (output_dir and os.path.exists(output_dir)) else os.path.join(target_dir, "script")
+    search_dir = os.path.join(base_dir, "word")
+    if not os.path.exists(search_dir): search_dir = base_dir
 
-    log_func("正在启动 Microsoft Word (后台运行)...")
+    log_func(f"正在搜索 Word 文档: {search_dir}")
+    files = sorted([f for f in glob.glob(os.path.join(search_dir, "*.docx")) if "~$" not in f and "全剧本" not in f])
+    
+    if not files: 
+        log_func("[Word合并] 未找到 .docx 文件")
+        return pythoncom.CoUninitialize()
+
+    log_func("启动 Word 合并...")
     word = None
     try:
         word = win32.Dispatch('Word.Application')
-        word.Visible = False
-        word.DisplayAlerts = False
+        word.Visible = False; word.DisplayAlerts = False
+        new_doc = word.Documents.Add(); sel = word.Selection
+        progress_bar["maximum"] = len(files)
         
-        new_doc = word.Documents.Add()
-        selection = word.Selection
-        
-        total = len(files)
-        log_func(f"共找到 {total} 个文件，开始合并...")
-        progress_bar["maximum"] = total
-        progress_bar["value"] = 0
-        
-        for index, file_path in enumerate(files):
-            filename = os.path.basename(file_path)
-            log_func(f"Processing [{index + 1}/{total}]: {filename}")
-            
-            selection.InsertFile(FileName=file_path, ConfirmConversions=False, Link=False, Attachment=False)
-            
-            if index < total - 1:
-                selection.InsertBreak(Type=7) # 分页符
-            
-            progress_bar["value"] = index + 1
+        for i, fp in enumerate(files):
+            log_func(f"合并中: {os.path.basename(fp)}")
+            sel.InsertFile(fp, ConfirmConversions=False, Link=False, Attachment=False)
+            if i < len(files)-1: sel.InsertBreak(Type=7) 
+            progress_bar["value"] = i + 1
             root.update_idletasks()
-            
-        output_name = f"全剧本.docx"
-        output_path = os.path.join(target_dir, output_name)
         
-        new_doc.SaveAs2(output_path, FileFormat=12)
+        out_name = "全剧本_Word合并.docx"
+        out_path = os.path.join(search_dir, out_name)
+        new_doc.SaveAs2(out_path, FileFormat=12)
         new_doc.Close()
-        
-        log_func("-" * 30)
-        # --- 修复点：这里原来写的是 out_name (未定义)，改为 output_name ---
-        log_func(f"[Word合并] ✅ 成功! 输出文件: {output_name}")
-        
-    except Exception as e:
-        log_func(f"❌ 错误: {e}")
-        messagebox.showerror("Word 错误", str(e))
-    finally:
-        if word:
-            try: word.Quit()
+        log_func(f"[Word合并] ✅ 成功: {out_path}")
+    except Exception as e: log_func(f"❌ 错误: {e}")
+    finally: 
+        if word: 
+            try: word.Quit() 
             except: pass
-        pythoncom.CoUninitialize()
-        progress_bar["value"] = 0
+        pythoncom.CoUninitialize(); progress_bar["value"] = 0

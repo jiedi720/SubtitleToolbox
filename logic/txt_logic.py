@@ -1,250 +1,80 @@
 import os
-import re
-import sys
-from tkinter import messagebox
+# [修改] 导入 get_organized_path
+from utils import generate_output_name, get_save_path, get_organized_path, smart_group_files, find_files_recursively, parse_subtitle_to_list, clean_filename_title
 
-# 尝试导入 pysrt
-try:
-    import pysrt
-    HAS_PYSRT = True
-except ImportError:
-    HAS_PYSRT = False
-
-# 尝试从 utils 导入
-try:
-    from utils import clean_subtitle_text_common, clean_filename_title, generate_output_name
-except ImportError:
-    # 后备逻辑
-    def clean_subtitle_text_common(t):
-        t = re.sub(r'\[.*?\]|\(.*?\)|{.*?}', '', t).replace('\n', ' ')
-        return t.strip()
-    def clean_filename_title(n): return os.path.splitext(n)[0]
-    def generate_output_name(files, ext=".txt"): return f"merged_output{ext}"
-
-def read_file_content(filepath):
-    """
-    智能编码读取
-    """
-    encodings = ['utf-8', 'utf-8-sig', 'gb18030', 'gbk', 'big5', 'utf-16', 'euc-kr', 'shift_jis']
-    for enc in encodings:
-        try:
-            with open(filepath, 'r', encoding=enc) as f:
-                return f.read()
-        except UnicodeDecodeError:
-            continue
-    try:
-        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
-            return f.read()
-    except Exception:
-        return ""
-
-def extract_content_with_timestamps(filepath):
-    """
-    提取带时间轴的内容 [00:00:06] 内容
-    """
-    raw_content = read_file_content(filepath)
-    if not raw_content:
-        return "[读取失败]"
-
-    ext = os.path.splitext(filepath)[1].lower()
-    output_lines = []
-
-    # === 策略 A: pysrt (推荐) ===
-    if ext == '.srt' and HAS_PYSRT:
-        try:
-            subs = pysrt.from_string(raw_content)
-            for sub in subs:
-                txt = clean_subtitle_text_common(sub.text)
-                if txt:
-                    time_str = str(sub.start)[:8]
-                    output_lines.append(f"[{time_str}]  {txt}")
-            return "\n".join(output_lines)
-        except Exception:
-            pass
-
-    # === 策略 B: 正则提取 (适用于 VTT 或 解析失败的 SRT) ===
-    timestamp_pattern = re.compile(r'^\s*(\d{1,2}:\d{2}:\d{2})[,.]\d{3}\s*-->')
+def run_txt_creation_task(target_dir, log_func, progress_bar, root, batch_size=0, output_dir=None):
+    log_func(f"[TXT] 扫描: {target_dir}")
+    files = find_files_recursively(target_dir, ('.srt', '.vtt', '.ass', '.smi'))
     
-    lines = raw_content.splitlines()
-    current_time = None
-    current_text_buffer = []
+    if not files: return log_func(f"❌ 未找到字幕文件")
+    if batch_size > 0: log_func(f"分组: {batch_size} 集/组")
 
-    for line in lines:
-        line = line.strip()
-        if not line:
-            if current_time and current_text_buffer:
-                full_text = " ".join(current_text_buffer)
-                cleaned_text = clean_subtitle_text_common(full_text)
-                if cleaned_text:
-                    output_lines.append(f"[{current_time}]  {cleaned_text}")
-            current_time = None
-            current_text_buffer = []
-            continue
+    file_groups = smart_group_files(files, batch_size)
+    progress_bar["maximum"] = len(files)
+    count = 0
+
+    # 确定基础输出目录 (script 或 自定义)
+    base_output_dir = output_dir if output_dir else os.path.join(target_dir, "script")
+
+    for group in file_groups:
+        if not group: continue
         
-        ts_match = timestamp_pattern.match(line)
-        if ts_match:
-            t_str = ts_match.group(1)
-            if len(t_str) == 7: t_str = "0" + t_str
-            current_time = t_str
-            continue
-            
-        if line.isdigit(): continue
-        if line.startswith('WEBVTT') or line.startswith('[Script Info]') or line.startswith('Format:'): continue
+        out_name = generate_output_name([os.path.basename(f) for f in group], ".txt")
+        
+        # [修改] 使用自动分类路径 (存入 txt 子文件夹)
+        out_path = get_organized_path(base_output_dir, out_name)
+        
+        log_func(f"生成: {out_name}")
 
-        if current_time is not None:
-            current_text_buffer.append(line)
+        try:
+            with open(out_path, 'w', encoding='utf-8') as outfile:
+                for fp in group:
+                    title = clean_filename_title(os.path.basename(fp))
+                    outfile.write(f"{'='*50}\n【{title}】\n{'='*50}\n\n")
+                    
+                    content_list = parse_subtitle_to_list(fp)
+                    if not content_list:
+                        outfile.write("[内容为空或解析失败]\n\n")
+                    else:
+                        for time_str, text in content_list:
+                            outfile.write(f"[{time_str}]  {text}\n")
+                    outfile.write("\n\n")
+                    
+                    count += 1
+                    progress_bar["value"] = count
+                    root.update_idletasks()
+        except Exception as e:
+            log_func(f"❌ 失败: {e}")
 
-    if current_time and current_text_buffer:
-        full_text = " ".join(current_text_buffer)
-        cleaned_text = clean_subtitle_text_common(full_text)
-        if cleaned_text:
-            output_lines.append(f"[{current_time}]  {cleaned_text}")
-
-    # 如果没有提取到时间轴，返回纯文本
-    if not output_lines:
-        return raw_content
-
-    return "\n".join(output_lines)
-
-def run_txt_creation_task(target_dir, log_func, progress_bar, root):
-    """
-    任务1: 字幕转 TXT (SRT/VTT -> 汇总 TXT)
-    读取所有字幕文件，提取时间轴和内容，生成一个汇总剧本文件。
-    """
-    log_func(f"[SRT->TXT] 正在扫描字幕文件: {target_dir}")
-
-    # 只扫描字幕格式
-    subtitle_extensions = ('.srt', '.vtt', '.ass', '.smi')
-    files = []
-    
-    try:
-        all_items = os.listdir(target_dir)
-        for item in all_items:
-            if item.lower().endswith(subtitle_extensions):
-                full_path = os.path.join(target_dir, item)
-                if os.path.isfile(full_path):
-                    files.append(full_path)
-    except Exception as e:
-        log_func(f"❌ 扫描出错: {e}")
-        return
-
-    files.sort()
-
-    if not files:
-        log_func(f"[SRT->TXT] 未找到字幕文件 (.srt, .vtt等)。")
-        return
-
-    total_files = len(files)
-    log_func(f"[SRT->TXT] 找到 {total_files} 个字幕文件，准备生成剧本...")
-    
-    progress_bar["maximum"] = total_files
+    log_func(f"✅ TXT 任务完成！保存目录: {base_output_dir}\\txt")
     progress_bar["value"] = 0
 
-    # 生成文件名
-    filenames_only = [os.path.basename(f) for f in files]
-    output_filename = generate_output_name(filenames_only, ext=".txt")
-    output_path = os.path.join(target_dir, output_filename)
+def run_txt_merge_task(target_dir, log_func, progress_bar, root, output_dir=None):
+    # [修改] 合并时去 txt 子目录找
+    base_dir = output_dir if (output_dir and os.path.exists(output_dir)) else os.path.join(target_dir, "script")
+    search_dir = os.path.join(base_dir, "txt")
     
-    if output_path in files: files.remove(output_path)
-
-    try:
-        with open(output_path, 'w', encoding='utf-8') as outfile:
-            for index, file_path in enumerate(files):
-                file_name = os.path.basename(file_path)
-                nice_title = clean_filename_title(file_name)
-                
-                log_func(f"正在处理 [{index+1}/{total_files}]: {nice_title}")
-                
-                # 调用带时间轴的提取
-                content = extract_content_with_timestamps(file_path)
-                
-                outfile.write("="*60 + "\n")
-                outfile.write(f"【{nice_title}】\n")
-                outfile.write("="*60 + "\n\n")
-                
-                outfile.write(content)
-                outfile.write("\n\n\n")
-
-                progress_bar["value"] = index + 1
-                root.update_idletasks()
-        
-        log_func("-" * 30)
-        log_func(f"[SRT->TXT] ✅ 剧本生成成功! 文件: {output_filename}")
-
-    except Exception as e:
-        log_func(f"❌ 错误: {str(e)}")
-        messagebox.showerror("错误", str(e))
-    finally:
-        progress_bar["value"] = 0
-
-def run_txt_merge_task(target_dir, log_func, progress_bar, root):
-    """
-    任务2: TXT 合并 (TXT -> 汇总 TXT)
-    简单合并目录下现有的 .txt 文件。
-    """
-    log_func(f"[TXT合并] 正在扫描 TXT 文件: {target_dir}")
-
-    files = []
-    try:
-        all_items = os.listdir(target_dir)
-        for item in all_items:
-            # 只扫描 .txt
-            if item.lower().endswith('.txt'):
-                # 排除可能已经存在的“合并后”的文件，防止循环包含
-                if "合并后的文本" in item or "merged_output" in item or "全剧本" in item:
-                    continue
-                
-                full_path = os.path.join(target_dir, item)
-                if os.path.isfile(full_path):
-                    files.append(full_path)
-    except Exception as e:
-        log_func(f"❌ 扫描出错: {e}")
-        return
-
+    if not os.path.exists(search_dir):
+        # 兼容性: 如果 txt 文件夹不存在，回退到 base_dir 找找看
+        search_dir = base_dir
+    
+    log_func(f"正在搜索 TXT 文件: {search_dir}")
+    files = [os.path.join(search_dir, f) for f in os.listdir(search_dir) if f.lower().endswith('.txt') and "全剧本" not in f]
     files.sort()
-
-    if not files:
-        log_func(f"[TXT合并] 未找到 .txt 文件。")
-        return
-
-    total_files = len(files)
-    log_func(f"[TXT合并] 找到 {total_files} 个 TXT 文件，准备合并...")
     
-    progress_bar["maximum"] = total_files
-    progress_bar["value"] = 0
-
-    # 生成输出文件名
-    dir_name = os.path.basename(target_dir)
-    output_filename = f"全剧本.txt"
-    output_path = os.path.join(target_dir, output_filename)
+    if not files: return log_func("未找到 .txt 文件")
     
-    if output_path in files: files.remove(output_path)
-
+    out_path = os.path.join(search_dir, "全剧本.txt")
+    
     try:
-        with open(output_path, 'w', encoding='utf-8') as outfile:
-            for index, file_path in enumerate(files):
-                file_name = os.path.basename(file_path)
-                
-                log_func(f"正在合并 [{index+1}/{total_files}]: {file_name}")
-                
-                # 简单读取内容
-                content = read_file_content(file_path)
-                
-                outfile.write("="*60 + "\n")
-                outfile.write(f"文件名: {file_name}\n")
-                outfile.write("="*60 + "\n\n")
-                
-                outfile.write(content)
-                outfile.write("\n\n\n")
-
-                progress_bar["value"] = index + 1
+        with open(out_path, 'w', encoding='utf-8') as outfile:
+            for i, f in enumerate(files):
+                outfile.write(f"{'='*30}\n{os.path.basename(f)}\n{'='*30}\n\n")
+                try:
+                    with open(f, 'r', encoding='utf-8') as infile: outfile.write(infile.read() + "\n\n")
+                except: pass
+                progress_bar["value"] = i+1
                 root.update_idletasks()
-        
-        log_func("-" * 30)
-        log_func(f"[TXT合并] ✅ 成功! 输出文件:  {output_filename}")
-
-    except Exception as e:
-        log_func(f"❌ 错误: {str(e)}")
-        messagebox.showerror("错误", str(e))
-    finally:
-        progress_bar["value"] = 0
+        log_func(f"✅ 合并完成: {out_path}")
+    except Exception as e: log_func(f"❌ 错误: {e}")
+    finally: progress_bar["value"] = 0
