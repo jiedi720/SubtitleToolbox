@@ -6,7 +6,7 @@ echo.
 
 echo 正在提交更改...
 set /p msg="请输入更新内容(直接回车默认'日常更新'): "
-if "%msg%"=="" set msg=v2.0
+if "%msg%"=="" set msg=日常更新
 git commit -m "%msg%"
 echo.
 
