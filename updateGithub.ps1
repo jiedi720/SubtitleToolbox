@@ -1,5 +1,11 @@
 cd "C:\Users\EJI1WX\OneDrive - Bosch Group\PythonProject\SubtitleToolbox"
 
+# 修改当前项目的用户名
+git config user.name "jiedi720"
+
+# (可选) 修改全局用户名
+git config --global user.name "jiedi720"
+
 # 设置 UTF8 编码以支持中文显示
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
