@@ -242,7 +242,7 @@ class UnifiedApp:
             self.on_preset_change(None)
 
     def load_settings(self):
-        fallback_dir = r"C:\"
+        fallback_dir = "C:/"
         final_path = fallback_dir
         if os.path.exists(config.CONFIG_FILE):
             try:
