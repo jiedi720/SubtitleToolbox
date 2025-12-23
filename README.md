@@ -1,105 +1,104 @@
-# 🎬 Subtitle Toolbox (字幕工具箱) v2.1
+# 📖 Subtitle Toolbox (字幕工具箱) v3.0
 
-**Subtitle Toolbox** 是一款专为剧本制作和字幕处理设计的本地工具。它能将 SRT/ASS/VTT 批量转换为排版精美的 PDF、Word 或 TXT 剧本，并支持高级 ASS 样式自定义。
-
-> **v2.1 更新亮点**：模块化架构重构、智能页眉支持、以及“根目录优先”的零污染合并逻辑。
+**Subtitle Toolbox** 是一款专为字幕组、翻译者及教育工作者设计的高效率自动化脚本工具。v3.0 版本进行了底层架构重构，实现了 UI 与逻辑的彻底解耦，极大提升了程序的稳定性和扩展性。
 
 ---
 
-## ✨ 核心功能
+## ✨ v3.0 重大更新说明 (2025-11-28)
 
-### 1. 剧本生成与格式化
+### 🏗️ 架构重组 (Architecture Refactoring)
 
-* **📄 PDF 剧本**: 自动生成目录，支持**居中页眉**（动态显示当前集数），每一页均有清晰的标注。
-* **📝 Word 文档**: 使用分节符技术，确保每集拥有独立页眉，文字居中排版。
-* **🎨 ASS 转换**: 强大的内置样式编辑器，支持韩/中、英/中等多语种字幕样式批量转换。
+* **Controller 模式**：引入了多重继承的控制器架构。将原本臃肿的 `app_controller` 拆分为：
+* `BaseController`: 负责变量初始化与配置持久化。
+* `UIController`: 处理路径浏览、界面反馈及预设切换逻辑。
+* `TaskController`: 核心任务流执行（ASS/PDF/Word 生成）。
+* `ToolController`: 快捷工具箱逻辑（文件合并）。
 
-### 2. 智能合并逻辑 (v2.1 新特性)
 
-合并功能采用 **“非贪婪优先级”** 策略，旨在保持工作目录简洁：
+* **模块化解耦**：
+* `control/`: 存放所有业务控制器。
+* `function/`: 存放纯工具函数（文件名清理、重命名、通用工具）。
+* `gui/`: 界面组件化，采用 `[name]_gui.py` 命名规范。
 
-* **优先级 1 (根目录)**: 优先扫描选定目录下的文件。若发现目标格式，立即执行合并。
-* **优先级 2 (子目录)**: 仅当根目录无文件时，才会自动进入 `pdf/`, `word/` 或 `txt/` 子文件夹进行合并。
-* **零污染**: 合并任务不再自动创建 `script` 文件夹，确保“原地操作”或“精准操作”。
 
-### 3. 处理与安全
 
-* **🔍 深度扫描**: 支持递归扫描，自动识别所有子文件夹中的字幕源文件。
-* **📦 自动归档**: 生成任务会将文件分类存放在 `script/` 下的对应子目录中。
-* **🗑️ 安全清理**: 清空输出目录时调用系统回收站 (`send2trash`)，而非永久删除。
-* **⚙️ 路径确认**: 增加 `👉` 确认按钮，支持手动触发路径验证与状态更新。
+### 🎨 UI/UX 优化
+
+* **视觉增强**：调大了模式切换器（SegmentedButton）的字体和高度，操作更清晰。
+* **动态反馈**：路径输入框支持实时颜色验证（合法为绿，非法为红）。
+* **日志系统**：针对不同任务类型（Word/PDF/ASS）引入了多色日志标签，方便快速定位任务状态。
+
+### 📦 工业级打包
+
+* **资源聚合**：规范了 PyInstaller 打包流程，支持全模块动态加载。
+* **稳定性**：修复了在多层级目录（如 OpenFOAM 结构）下文件检索失效的问题。
 
 ---
 
-## 🛠️ 模块化项目结构
-
-项目采用界面与逻辑分离的架构，极大提升了扩展性：
+## 📂 项目结构
 
 ```text
-subtitle_toolbox/
-├── main.py              # 程序入口：负责线程调度与核心变量管理
-├── gui.py               # 界面模块：负责所有 Tkinter 布局与 UI 交互
-├── logic/               # 逻辑内核
-│   ├── pdf_logic.py     # PDF 动态页眉生成与优先级合并
-│   ├── word_logic.py    # Word 分节处理与 Win32 合并引擎
-│   ├── txt_logic.py     # 纯文本提取与编码兼容处理
-│   ├── ass_logic.py     # 字幕样式转换引擎
-│   └── utils.py         # 万能解析器 (UTF-8/16/GBK) 与通用工具
-└── resources/           # 静态资源 (图标、字体等)
+SubtitleToolbox/
+├── control/              # 【核心大脑】业务控制器
+│   ├── main_controller.py   # 总聚合类 (UnifiedApp)
+│   ├── base_controller.py   # 基础设置
+│   ├── ui_controller.py     # 界面交互
+│   ├── task_controller.py   # 转换逻辑
+│   └── tool_controller.py   # 合并工具
+├── gui/                  # 【视觉层】UI 组件
+│   ├── main_gui.py          # 主窗口
+│   ├── ass_gui.py           # ASS 样式管理
+│   ├── log_gui.py           # 日志系统
+│   └── components_gui.py    # 工具箱面板
+├── function/             # 【工具层】纯逻辑函数
+│   ├── naming.py            # 重命名规则
+│   ├── utils.py             # 通用处理
+│   └── cleaners.py          # 文本清理
+├── logic/                # 业务底层逻辑 (Word/PDF/TXT 处理)
+├── font/                 # ASS 样式与字体处理
+└── SubtitleToolbox.py    # 程序入口文件
 
 ```
 
 ---
 
-## 📦 快速开始
+## 🚀 快速开始
 
-### 安装依赖
+### 1. 环境准备
+
+确保已安装 Python 3.10+ 及以下依赖库：
 
 ```bash
-pip install reportlab python-docx pysrt pywin32 send2trash pypdf
+pip install customtkinter pypdf docx docxcompose pysubs2 pysrt send2trash pywin32 reportlab
 
 ```
 
-### 打包命令 (PyInstaller)
-
-使用以下命令可将项目打包为独立的 EXE 文件，已包含所有隐藏导入：
+### 2. 运行程序
 
 ```bash
-python -m PyInstaller --noconfirm --onefile --windowed \
---name="SubtitleToolbox" \
---icon="resources/subtitle-toolbox.ico" \
---add-data "logic;logic" \
---add-data "resources;resources" \
---hidden-import="reportlab" \
---hidden-import="reportlab.platypus" \
---hidden-import="reportlab.lib.styles" \
---hidden-import="pysrt" \
---hidden-import="docx" \
---hidden-import="win32com" \
---hidden-import="pypdf" \
---hidden-import="send2trash" \
---clean main.py
+python SubtitleToolbox.py
+
+```
+
+### 3. 打包 EXE
+
+使用以下命令生成单文件绿色版：
+
+```bash
+python -m PyInstaller --noconfirm --onefile --windowed --name="SubtitleToolbox" --add-data "logic;logic" --add-data "control;control" --add-data "function;function" --add-data "gui;gui" --add-data "font;font" --add-data "config;config" --clean SubtitleToolbox.py
 
 ```
 
 ---
 
-## 📝 使用指南
+## 🛠️ 主要功能
 
-1. **生成剧本**：
-* 选择源目录，勾选任务模式为“生成台词剧本”。
-* 程序会在 `script/` 下创建对应的格式文件夹并分类存放。
-
-
-2. **合并剧本**：
-* 若想合并 `script/pdf` 里的文件，直接点击“PDF合并”即可。
-* 若想合并根目录下的文件，只需确保根目录下有 PDF，点击合并时程序会优先处理根目录，**不会**生成多余文件夹。
-
-
-3. **快捷键**：在路径框按下 `Enter` 或点击 `👉` 即可快速验证路径有效性。
+* **ASS 转换**：支持中韩双语字幕样式自定义，批量生成 ASS 特效文件。
+* **剧本生成**：一键将字幕导出为 Word (docx)、PDF 或 TXT 剧本，支持 4 合 1 分组模式。
+* **快捷合并**：Word 批量合并（保留格式）、PDF 物理合并、TXT 文本串联。
 
 ---
 
-## 📄 开源协议
+## ⚖️ 许可证
 
-本项目遵循 MIT License 协议。
+基于 MIT License 开源。

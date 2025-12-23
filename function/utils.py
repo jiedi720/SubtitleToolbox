@@ -7,11 +7,11 @@ except ImportError: HAS_PYSRT = False
 
 # 导入清洗和命名模块
 try:
-    from cleaners import clean_subtitle_text_common, clean_subtitle_text_ass
-    from naming import clean_filename_title, get_series_name, generate_output_name
+    from function.cleaners import clean_subtitle_text_common, clean_subtitle_text_ass
+    from function.naming import clean_filename_title, get_series_name, generate_output_name
 except ImportError:
-    from logic.cleaners import clean_subtitle_text_common, clean_subtitle_text_ass
-    from logic.naming import clean_filename_title, get_series_name, generate_output_name
+    from function.cleaners import clean_subtitle_text_common, clean_subtitle_text_ass
+    from function.naming import clean_filename_title, get_series_name, generate_output_name
 
 # ==========================================================
 # 核心工具函数
