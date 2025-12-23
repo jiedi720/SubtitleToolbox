@@ -104,66 +104,61 @@ def run_word_creation_task(target_dir, log_func, progress_bar, root, batch_size=
     progress_bar["value"] = 0
 
 # ==============================================================================
-# 任务 2: Word 合并 (合并任务，忽略 script，直接找 word 文件夹)
+# 任务 2: Word 合并 （如果根目录有文件，就只处理根目录，不再看子文件夹）
 # ==============================================================================
+
+# ... (前面的生成逻辑 run_word_creation_task 保持不变) ...
+
 def run_win32_merge_task(target_dir, log_func, progress_bar, root, output_dir=None):
     if not HAS_WIN32: return log_func("错误: 未安装 pywin32")
     pythoncom.CoInitialize()
     
-    # 【核心逻辑修改】直接查找选定目录下的 word 子文件夹
-    search_dir = os.path.join(target_dir, "word")
+    # 【彻底剥离 script】
+    log_func(f"检查根目录: {target_dir}")
+    root_files = sorted([os.path.join(target_dir, f) for f in os.listdir(target_dir) 
+                        if f.lower().endswith('.docx') and "~$" not in f and "全剧本" not in f])
     
-    if not os.path.exists(search_dir):
-        return log_func(f"❌ 未找到待合并目录: {search_dir}")
+    target_files = []
+    save_dir = target_dir
 
-    log_func(f"正在扫描 Word 文档: {search_dir}")
-    
-    # 获取所有 docx，放宽限制
-    files = sorted([
-        os.path.join(search_dir, f) for f in os.listdir(search_dir) 
-        if f.lower().endswith('.docx') 
-        and "~$" not in f 
-        and "全剧本" not in f
-    ])
-    
-    if not files: 
-        log_func("❌ 该目录下未找到待合并的 .docx 文件")
+    if root_files:
+        log_func(f"✨ 在根目录发现 {len(root_files)} 个 Word 文档。")
+        target_files = root_files
+    else:
+        sub_dir = os.path.join(target_dir, "word")
+        if os.path.exists(sub_dir):
+            log_func(f"根目录无文件，检查子目录: {sub_dir}")
+            sub_files = sorted([os.path.join(sub_dir, f) for f in os.listdir(sub_dir) 
+                               if f.lower().endswith('.docx') and "~$" not in f and "全剧本" not in f])
+            if sub_files:
+                log_func(f"✨ 在子目录发现 {len(sub_files)} 个 Word 文档。")
+                target_files = sub_files
+                save_dir = sub_dir
+
+    if not target_files:
+        log_func("❌ 未找到待合并的 .docx 文件")
         return pythoncom.CoUninitialize()
 
-    log_func(f"启动合并 (共 {len(files)} 个文件)...")
     word = None
     try:
         word = win32.Dispatch('Word.Application')
-        word.Visible = False
-        word.DisplayAlerts = False
+        word.Visible = False; word.DisplayAlerts = False
         new_doc = word.Documents.Add()
         sel = word.Selection
+        progress_bar["maximum"] = len(target_files)
         
-        progress_bar["maximum"] = len(files)
-        
-        for i, fp in enumerate(files):
+        for i, fp in enumerate(target_files):
             log_func(f"合并中: {os.path.basename(fp)}")
-            # 使用绝对路径以确保 win32com 正确识别
-            abs_path = os.path.abspath(fp)
-            sel.InsertFile(abs_path, ConfirmConversions=False, Link=False, Attachment=False)
-            
-            if i < len(files) - 1: 
-                sel.InsertBreak(Type=7) # 分页符
-                
-            progress_bar["value"] = i + 1
-            root.update_idletasks()
+            sel.InsertFile(os.path.abspath(fp))
+            if i < len(target_files)-1: sel.InsertBreak(Type=7)
+            progress_bar["value"] = i+1; root.update_idletasks()
         
-        out_name = "全剧本_Word合并.docx"
-        out_path = os.path.join(search_dir, out_name)
+        out_path = os.path.join(save_dir, "Word合并.docx")
         new_doc.SaveAs2(os.path.abspath(out_path), FileFormat=12)
         new_doc.Close()
         log_func(f"✅ 合并成功！文件位于: {out_path}")
-        
-    except Exception as e: 
+    except Exception as e:
         log_func(f"❌ 运行错误: {e}")
-    finally: 
-        if word: 
-            try: word.Quit() 
-            except: pass
-        pythoncom.CoUninitialize()
-        progress_bar["value"] = 0
+    finally:
+        if word: word.Quit()
+        pythoncom.CoUninitialize(); progress_bar["value"] = 0

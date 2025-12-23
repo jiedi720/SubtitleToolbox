@@ -122,14 +122,26 @@ class UnifiedApp:
     def start_pdf_merge_thread(self): self.start_generic_task(run_pdf_merge_task)
     def start_txt_merge_thread(self): self.start_generic_task(run_txt_merge_task)
     
+# ==========================================
+    # 逻辑操作：多线程任务
+    # ==========================================
     def start_generic_task(self, task_func):
         target_dir = self.path_var.get().strip()
-        if not target_dir or not os.path.exists(target_dir): messagebox.showerror("错误", "无效的目录"); return
+        if not target_dir or not os.path.exists(target_dir): 
+            messagebox.showerror("错误", "无效的目录")
+            return
+            
+        # 【彻底修复点】获取路径，但绝对不要在这里调用 os.makedirs
+        # 合并任务（Merge Task）将直接使用 target_dir 去找子文件夹
+        # 生成任务（Creation Task）则由其内部逻辑在需要时才创建目录
         final_output_dir = self.get_output_dir()
-        if not os.path.exists(final_output_dir): 
-            try: os.makedirs(final_output_dir)
-            except: pass
-        threading.Thread(target=task_func, args=(target_dir, self.log, self.progress, self.root), kwargs={'output_dir': final_output_dir}, daemon=True).start()
+        
+        threading.Thread(
+            target=task_func, 
+            args=(target_dir, self.log, self.progress, self.root), 
+            kwargs={'output_dir': final_output_dir}, 
+            daemon=True
+        ).start()
 
     def process(self):
         target_dir = self.path_var.get().strip()
@@ -230,7 +242,7 @@ class UnifiedApp:
             self.on_preset_change(None)
 
     def load_settings(self):
-        fallback_dir = r"H:\剧集\韩剧"
+        fallback_dir = r"C:\"
         final_path = fallback_dir
         if os.path.exists(config.CONFIG_FILE):
             try:

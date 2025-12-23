@@ -134,46 +134,56 @@ def run_pdf_task(target_dir, log_func, progress_bar, root, batch_size=0, output_
     progress_bar["value"] = 0
 
 # ==============================================================================
-# 任务 2: 合并 PDF (完全忽略 script，直接找 pdf 文件夹)
+# 任务 2: 合并 PDF（如果根目录有文件，就只处理根目录，不再看子文件夹）
 # ==============================================================================
+
+# ... (前面的生成逻辑 run_pdf_task 保持不变，它依然可以向 script 输出) ...
+
 def run_pdf_merge_task(target_dir, log_func, progress_bar, root, output_dir=None):
     if PdfMerger is None: return log_func("错误: 缺少 pypdf 库")
     
-    # 【核心逻辑修改】直接查找选定目录下的 pdf 子文件夹
-    # 比如选了 NotebookLM，就直接找 NotebookLM\pdf
-    search_dir = os.path.join(target_dir, "pdf")
+    # 【彻底剥离 script】直接使用传入的 target_dir (源文件目录)
+    log_func(f"检查根目录: {target_dir}")
     
-    if not os.path.exists(search_dir):
-        return log_func(f"❌ 未找到待合并目录: {search_dir}")
+    # 1. 优先级搜索：先看根目录
+    root_files = sorted([os.path.join(target_dir, f) for f in os.listdir(target_dir) 
+                        if f.lower().endswith('.pdf') and "全剧本" not in f and "Merged" not in f])
+    
+    target_files = []
+    save_dir = target_dir
 
-    log_func(f"正在扫描 PDF: {search_dir}")
-    
-    # 获取所有 PDF，放宽限制：只要是 .pdf 且不是已合并的结果
-    files = sorted([
-        os.path.join(search_dir, f) for f in os.listdir(search_dir) 
-        if f.lower().endswith('.pdf') 
-        and "全剧本" not in f 
-        and "Merged" not in f
-    ])
-    
-    if not files: 
-        return log_func("❌ 该目录下未找到待合并的 PDF 文件。")
-    
+    if root_files:
+        log_func(f"✨ 在根目录发现 {len(root_files)} 个 PDF。")
+        target_files = root_files
+    else:
+        # 2. 优先级搜索：根目录没找到，看 target_dir 下的 pdf 子目录
+        sub_dir = os.path.join(target_dir, "pdf")
+        if os.path.exists(sub_dir):
+            log_func(f"根目录无文件，检查子目录: {sub_dir}")
+            sub_files = sorted([os.path.join(sub_dir, f) for f in os.listdir(sub_dir) 
+                               if f.lower().endswith('.pdf') and "全剧本" not in f and "Merged" not in f])
+            if sub_files:
+                log_func(f"✨ 在子目录发现 {len(sub_files)} 个 PDF。")
+                target_files = sub_files
+                save_dir = sub_dir
+
+    if not target_files:
+        return log_func("❌ 未找到待合并文件（已检查根目录及 pdf 文件夹）")
+
+    # 3. 合并过程
     merger = PdfMerger()
-    progress_bar["maximum"] = len(files)
-    
+    progress_bar["maximum"] = len(target_files)
     try:
-        for i, f in enumerate(files):
+        for i, f in enumerate(target_files):
             log_func(f"合并中: {os.path.basename(f)}")
             merger.append(f)
             progress_bar["value"] = i+1; root.update_idletasks()
             
-        out_path = os.path.join(search_dir, "全剧本_PDF合并.pdf")
+        out_path = os.path.join(save_dir, "PDF合并.pdf")
         merger.write(out_path)
         merger.close()
         log_func(f"✅ 合并成功！文件位于: {out_path}")
-        
-    except Exception as e: 
-        log_func(f"❌ 合并失败: {e}")
-    finally: 
+    except Exception as e:
+        log_func(f"❌ 错误: {e}")
+    finally:
         progress_bar["value"] = 0

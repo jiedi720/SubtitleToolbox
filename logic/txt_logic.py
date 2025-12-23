@@ -49,32 +49,51 @@ def run_txt_creation_task(target_dir, log_func, progress_bar, root, batch_size=0
     log_func(f"✅ TXT 任务完成！保存目录: {base_output_dir}\\txt")
     progress_bar["value"] = 0
 
+# ==============================================================================
+# 任务 2: txt 合并 （如果根目录有文件，就只处理根目录，不再看子文件夹）
+# ==============================================================================
+
+# ... (前面的生成逻辑 run_txt_creation_task 保持不变) ...
+
 def run_txt_merge_task(target_dir, log_func, progress_bar, root, output_dir=None):
-    # [修改] 合并时去 txt 子目录找
-    base_dir = output_dir if (output_dir and os.path.exists(output_dir)) else os.path.join(target_dir, "script")
-    search_dir = os.path.join(base_dir, "txt")
+    # 【彻底剥离 script】
+    log_func(f"检查根目录: {target_dir}")
+    root_files = sorted([os.path.join(target_dir, f) for f in os.listdir(target_dir) 
+                        if f.lower().endswith('.txt') and "全剧本" not in f])
     
-    if not os.path.exists(search_dir):
-        # 兼容性: 如果 txt 文件夹不存在，回退到 base_dir 找找看
-        search_dir = base_dir
-    
-    log_func(f"正在搜索 TXT 文件: {search_dir}")
-    files = [os.path.join(search_dir, f) for f in os.listdir(search_dir) if f.lower().endswith('.txt') and "全剧本" not in f]
-    files.sort()
-    
-    if not files: return log_func("未找到 .txt 文件")
-    
-    out_path = os.path.join(search_dir, "全剧本.txt")
-    
+    target_files = []
+    save_dir = target_dir
+
+    if root_files:
+        log_func(f"✨ 在根目录发现 {len(root_files)} 个 TXT 文件。")
+        target_files = root_files
+    else:
+        sub_dir = os.path.join(target_dir, "txt")
+        if os.path.exists(sub_dir):
+            log_func(f"根目录无文件，检查子目录: {sub_dir}")
+            sub_files = sorted([os.path.join(sub_dir, f) for f in os.listdir(sub_dir) 
+                               if f.lower().endswith('.txt') and "全剧本" not in f])
+            if sub_files:
+                log_func(f"✨ 在子目录发现 {len(sub_files)} 个 TXT 文件。")
+                target_files = sub_files
+                save_dir = sub_dir
+
+    if not target_files:
+        return log_func("❌ 未找到待合并的 .txt 文件")
+
+    progress_bar["maximum"] = len(target_files)
+    out_path = os.path.join(save_dir, "TXT合并.txt")
+
     try:
         with open(out_path, 'w', encoding='utf-8') as outfile:
-            for i, f in enumerate(files):
-                outfile.write(f"{'='*30}\n{os.path.basename(f)}\n{'='*30}\n\n")
-                try:
-                    with open(f, 'r', encoding='utf-8') as infile: outfile.write(infile.read() + "\n\n")
-                except: pass
-                progress_bar["value"] = i+1
-                root.update_idletasks()
-        log_func(f"✅ 合并完成: {out_path}")
-    except Exception as e: log_func(f"❌ 错误: {e}")
-    finally: progress_bar["value"] = 0
+            for i, fp in enumerate(target_files):
+                log_func(f"合并中: {os.path.basename(fp)}")
+                with open(fp, 'r', encoding='utf-8') as infile:
+                    outfile.write(infile.read())
+                    outfile.write("\n\n" + "="*50 + "\n\n") 
+                progress_bar["value"] = i+1; root.update_idletasks()
+        log_func(f"✅ 合并成功！文件位于: {out_path}")
+    except Exception as e:
+        log_func(f"❌ 错误: {e}")
+    finally:
+        progress_bar["value"] = 0

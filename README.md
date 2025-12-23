@@ -1,73 +1,105 @@
-# 🎬 Subtitle Toolbox (字幕工具箱) v2.0
-**Subtitle Toolbox** 是一款功能强大的本地字幕处理工具。它可以将 SRT/ASS/VTT 字幕文件批量转换为易于阅读的 PDF 剧本、Word 文档或纯文本文件，支持智能分卷、ASS 样式转换以及多格式合并。
-> **v2.0 重大更新**：采用了全新的模块化架构，实现了界面与逻辑分离，新增递归搜索、智能页眉生成及万能编码解析。
+# 🎬 Subtitle Toolbox (字幕工具箱) v2.1
+
+**Subtitle Toolbox** 是一款专为剧本制作和字幕处理设计的本地工具。它能将 SRT/ASS/VTT 批量转换为排版精美的 PDF、Word 或 TXT 剧本，并支持高级 ASS 样式自定义。
+
+> **v2.1 更新亮点**：模块化架构重构、智能页眉支持、以及“根目录优先”的零污染合并逻辑。
+
 ---
+
 ## ✨ 核心功能
-### 1. 多格式转换与生成
-* **📄 字幕转 PDF**: 生成排版精美的 PDF 剧本，支持**居中页眉**（显示当前集数名称）和智能目录书签。
-* **📝 字幕转 Word**: 生成 `.docx` 文档，支持分节符和独立页眉，方便二次编辑。
-* **📃 字幕转 TXT**: 提取纯文本对白，自动过滤时间轴和特效标签。
-* **🎨 ASS 样式转换**: 将普通字幕转换为带有双语样式（中文/外语）的高级 ASS 字幕。
-### 2. 智能处理
-* **🔍 递归扫描**: 自动扫描选定目录及其所有**子文件夹**中的字幕文件。
-* **📦 智能分卷**: 支持按集数分组（如每 4 集生成一个文件），自动平衡卷容量。
-* **📂 自动归档**: 生成的文件会自动分类存入 `pdf/`, `word/`, `txt/` 子文件夹，保持目录整洁。
-* **🛠 万能解析**: 内置强健的解析器，自动识别 **UTF-8 / UTF-16 / GBK** 编码，彻底解决乱码和“方块字”问题。
-### 3. 便捷工具
-* **🗑️ 安全清理**: “清空输出目录”功能使用系统回收站（Recycle Bin），防止误删文件。
-* **📑 文件合并**: 提供独立的 PDF、Word、TXT 合并工具，可将零散文件合并为“全剧本”。
+
+### 1. 剧本生成与格式化
+
+* **📄 PDF 剧本**: 自动生成目录，支持**居中页眉**（动态显示当前集数），每一页均有清晰的标注。
+* **📝 Word 文档**: 使用分节符技术，确保每集拥有独立页眉，文字居中排版。
+* **🎨 ASS 转换**: 强大的内置样式编辑器，支持韩/中、英/中等多语种字幕样式批量转换。
+
+### 2. 智能合并逻辑 (v2.1 新特性)
+
+合并功能采用 **“非贪婪优先级”** 策略，旨在保持工作目录简洁：
+
+* **优先级 1 (根目录)**: 优先扫描选定目录下的文件。若发现目标格式，立即执行合并。
+* **优先级 2 (子目录)**: 仅当根目录无文件时，才会自动进入 `pdf/`, `word/` 或 `txt/` 子文件夹进行合并。
+* **零污染**: 合并任务不再自动创建 `script` 文件夹，确保“原地操作”或“精准操作”。
+
+### 3. 处理与安全
+
+* **🔍 深度扫描**: 支持递归扫描，自动识别所有子文件夹中的字幕源文件。
+* **📦 自动归档**: 生成任务会将文件分类存放在 `script/` 下的对应子目录中。
+* **🗑️ 安全清理**: 清空输出目录时调用系统回收站 (`send2trash`)，而非永久删除。
+* **⚙️ 路径确认**: 增加 `👉` 确认按钮，支持手动触发路径验证与状态更新。
+
 ---
-## 🛠️ 项目结构 (v2.0 架构)
-本项目采用 MVC 模式进行了重构，逻辑清晰，易于维护：
+
+## 🛠️ 模块化项目结构
+
+项目采用界面与逻辑分离的架构，极大提升了扩展性：
+
 ```text
 subtitle_toolbox/
-├── main.py              # 程序入口，负责调度和线程管理
-├── gui.py               # 图形用户界面 (Tkinter) 代码
-├── config.py            # 配置文件管理
-├── logic/               # 核心逻辑模块
-│   ├── utils.py         # 通用工具 (解析、分组、路径处理)
-│   ├── cleaners.py      # 文本清洗正则 (去除特效、标签)
-│   ├── naming.py        # 文件名识别与格式化
-│   ├── pdf_logic.py     # PDF 生成与合并逻辑 (ReportLab)
-│   ├── word_logic.py    # Word 生成与合并逻辑 (python-docx / win32com)
-│   ├── txt_logic.py     # TXT 生成与合并逻辑
-│   └── ass_logic.py     # ASS 样式处理逻辑
-└── resources/           # 静态资源 (图标、字体)
+├── main.py              # 程序入口：负责线程调度与核心变量管理
+├── gui.py               # 界面模块：负责所有 Tkinter 布局与 UI 交互
+├── logic/               # 逻辑内核
+│   ├── pdf_logic.py     # PDF 动态页眉生成与优先级合并
+│   ├── word_logic.py    # Word 分节处理与 Win32 合并引擎
+│   ├── txt_logic.py     # 纯文本提取与编码兼容处理
+│   ├── ass_logic.py     # 字幕样式转换引擎
+│   └── utils.py         # 万能解析器 (UTF-8/16/GBK) 与通用工具
+└── resources/           # 静态资源 (图标、字体等)
+
 ```
+
 ---
-## 📦 环境依赖
-请确保已安装 Python 3.10+，并安装以下依赖库：
+
+## 📦 快速开始
+
+### 安装依赖
+
 ```bash
 pip install reportlab python-docx pysrt pywin32 send2trash pypdf
-```
-* `reportlab`: 用于生成 PDF。
-* `python-docx`: 用于生成 Word 文档。
-* `pysrt`: 用于解析 SRT 字幕。
-* `pywin32`: 用于调用 Word 进行完美合并。
-* `send2trash`: 用于安全删除文件到回收站。
-* `pypdf`: 用于合并 PDF 文件。
----
-## 🚀 运行与打包
-### 运行源码
-在项目根目录下运行：
-```bash
-python main.py
-```
-### 打包为 EXE (Windows)
-本项目配置了复杂的隐藏导入，请使用以下命令进行打包（确保已安装 `pyinstaller`）：
-```bash
-python -m PyInstaller --noconfirm --onefile --windowed --name="SubtitleToolbox" --icon="resources/subtitle-toolbox.ico" --add-data "logic;logic" --add-data "resources;resources" --add-data "resources/subtitle-toolbox.ico;." --hidden-import="reportlab" --hidden-import="reportlab.platypus" --hidden-import="reportlab.lib.styles" --hidden-import="reportlab.platypus.tableofcontents" --hidden-import="win32timezone" --hidden-import="pysrt" --hidden-import="docx" --hidden-import="win32com" --hidden-import="win32com.client" --hidden-import="pythoncom" --hidden-import="pypdf" --hidden-import="send2trash" --clean main.py
-```
----
-## 📝 使用指南
-1. **选择源目录**：点击 `📂` 选择包含字幕文件（srt/ass/vtt）的文件夹。
-2. **设置输出**：默认在源目录下生成 `script` 文件夹，也可以手动指定。
-3. **选择模式**：
-* **合并/转换字幕 (ASS)**：处理字幕样式。
-* **生成台词剧本 (PDF/Word)**：勾选需要的格式。
 
-4. **高级选项**：勾选“启用智能分卷”可将剧集自动分组。
-5. **开始处理**：点击按钮，进度条将显示处理进度。
+```
+
+### 打包命令 (PyInstaller)
+
+使用以下命令可将项目打包为独立的 EXE 文件，已包含所有隐藏导入：
+
+```bash
+python -m PyInstaller --noconfirm --onefile --windowed \
+--name="SubtitleToolbox" \
+--icon="resources/subtitle-toolbox.ico" \
+--add-data "logic;logic" \
+--add-data "resources;resources" \
+--hidden-import="reportlab" \
+--hidden-import="reportlab.platypus" \
+--hidden-import="reportlab.lib.styles" \
+--hidden-import="pysrt" \
+--hidden-import="docx" \
+--hidden-import="win32com" \
+--hidden-import="pypdf" \
+--hidden-import="send2trash" \
+--clean main.py
+
+```
+
 ---
-## 📄 License
-此项目遵循 MIT 开源协议。
+
+## 📝 使用指南
+
+1. **生成剧本**：
+* 选择源目录，勾选任务模式为“生成台词剧本”。
+* 程序会在 `script/` 下创建对应的格式文件夹并分类存放。
+
+
+2. **合并剧本**：
+* 若想合并 `script/pdf` 里的文件，直接点击“PDF合并”即可。
+* 若想合并根目录下的文件，只需确保根目录下有 PDF，点击合并时程序会优先处理根目录，**不会**生成多余文件夹。
+
+
+3. **快捷键**：在路径框按下 `Enter` 或点击 `👉` 即可快速验证路径有效性。
+
+---
+
+## 📄 开源协议
+
+本项目遵循 MIT License 协议。
