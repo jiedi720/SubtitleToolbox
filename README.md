@@ -1,109 +1,91 @@
-# SubtitleToolbox v3.1
+# SubtitleToolbox
 
-**SubtitleToolbox** 是一款专为字幕组、翻译者及办公自动化设计的全能型工具箱。v3.1 版本通过重构核心架构，实现了极佳的 Windows 高 DPI 适配与多屏工作流支持。
-
-## ✨ v3.1 新特性
-
-* **📺 多屏自适应居中**：重构了窗口初始化算法，通过 Windows API 实时获取主屏幕工作区，彻底解决在副屏环境下窗口偏移至左上角的 Bug。
-* **🎨 紧凑型 UI 布局**：
-* **顶部集成栏**：将“配置文件”与“ASS样式配置”整合至标题行，释放纵向空间。
-* **智能布局**：将“智能分卷”开关移至合并工具栏，操作路径更短。
-
-
-* **🧩 组件化架构**：UI 逻辑已完全拆分为 `LogComponent`、`ASSConfigWindow` 等独立模块，提升了代码的可维护性与扩展性。
-* **🔍 视觉优化**：
-* 关键功能开关（如智能分卷、格式选框）全面支持**微软雅黑加粗**显示。
-* 进度条支持**动态显色逻辑**：任务进行时显绿，静默状态自动归位。
-
-
+**SubtitleToolbox** 是一款专为字幕组及翻译从业者设计的现代化、全功能自动化工具箱。它通过多线程异步架构，将复杂的剧本处理、字幕转换及临时文件维护工作流整合进一个直观的 GUI 界面中。
 
 ---
 
-## 🛠️ 核心功能
-
-### 1. 字幕转换 (SRT2ASS)
-
-* 支持批量将 SRT 字幕转换为 ASS 格式。
-* 内置强大的样式配置面板，支持自定义字体、颜色、边框及阴影。
-
-### 2. 文档合并工具
-
-* **PDF 合并**：基于 `pypdf` 实现的高性能 PDF 页面拼接。
-* **Word 合并**：调用 `win32com` 原生引擎，完美保留文档格式与排版。
-* **TXT 合并**：支持多种编码检测，一键合并零散文本。
-
-### 3. 自动化处理
-
-* **智能分卷**：自动识别文件序列，按逻辑分组处理。
-* **一键日志管理**：实时反馈处理进度，支持一键清空历史记录。
-
----
-
-## 🚀 快速开始
-
-### 开发环境配置
-
-1. 克隆仓库：
-```bash
-git clone https://github.com/your-repo/SubtitleToolbox.git
-
-```
-
-
-2. 安装依赖：
-```bash
-pip install customtkinter pysrt pysubs2 reportlab pypdf pywin32 docxcompose send2trash
-
-```
-
-
-
-### 运行程序
-
-执行主入口文件：
-
-```bash
-python SubtitleToolbox.py
-
-```
-
----
-
-## 📦 打包说明
-
-项目根目录提供了 `build.bat` 自动化打包脚本。
-
-* **环境要求**：已安装 `PyInstaller`。
-* **打包特性**：
-* 开启 `--windowed` 模式，无黑窗口运行。
-* 自动封装所有子模块（logic, gui, control 等）及资源文件。
-* 包含 DPI 意识补丁，确保生成的 `.exe` 在不同缩放倍率下不模糊。
-
-
-
----
-
-## 📂 项目结构
+## 📂 项目目录结构 (A-Z 排序)
 
 ```text
 SubtitleToolbox/
-├── SubtitleToolbox.py   # 程序主入口 (含DPI及多屏修正)
-├── gui/                 # UI 组件库 (Log, ASS, PathRow等)
-├── logic/               # 字幕转换与文件处理核心逻辑
-├── control/             # 业务逻辑控制器
-├── resources/           # 图标及 UI 图片资源
-└── config/              # 默认配置文件
+├── SubtitleToolbox.py         # 程序唯一入口
+├── SubtitleToolbox.ini        # 运行配置持久化文件 (自动生成)
+├── build_exe.bat              # PyInstaller 一键打包脚本
+│
+├── config/                    # 配置
+│   └── settings.py            # 配置读写与管理逻辑
+│
+├── control/                   # 控制层 (Controller)
+│   ├── base_controller.py     # 路径管理与通用基础逻辑
+│   ├── main_controller.py     # 全局模式切换调度
+│   ├── task_controller.py     # 核心任务流程控制
+│   ├── tool_controller.py     # 外部工具 (合并/清理) 调用中枢
+│   └── ui_controller.py       # UI 交互状态调度
+│
+├── font/                      # 字体与格式增强
+│   ├── font.py                # 字体库匹配与路径处理
+│   └── srt2ass.py             # 样式转换扩展增强
+│
+├── function/                  # 功能层 (Function)
+│   ├── cleaners.py            # 文本清洗与冗余剔除工具
+│   ├── files.py               # 文件扫描与读写封装
+│   ├── naming.py              # 自动化命名规则匹配
+│   ├── parsers.py             # 内容解析器
+│   ├── paths.py               # 增强型路径/目录格式化
+│   └── trash.py               # 回收站智能清理 (带文件占用追踪)
+│
+├── gui/                       # 界面层 (View)
+│   ├── ass_gui.py             # ASS 样式可视化配置弹窗
+│   ├── components_gui.py      # 复用型 UI 组件封装
+│   ├── log_gui.py             # 交互式多色控制台组件
+│   └── main_gui.py            # 主面板布局与组件集成
+│
+├── logic/                     # 业务逻辑层 (Logic)
+│   ├── pdf_logic.py           # PDF 页面缝合与重组
+│   ├── srt2ass_logic.py       # SRT 到 ASS 字幕转换核心实现
+│   ├── txt_logic.py           # TXT 极速合并算法
+│   └── word_logic.py          # Word (win32com) 文档驱动逻辑
+│
+└── resources/                 # 外部资源
+    └── SubtitleToolbox.ico    # 程序封装图标
 
 ```
 
 ---
 
-## 📝 许可证
+## 🚀 核心功能特性
 
-本项目采用 MIT 许可证。欢迎提交 Issue 或 Pull Request 参与贡献。
+* **安全清理 (Cleanup Tool)**：使用 `send2trash` 安全移除临时文件，支持文件锁定（占用）自动识别与报红提示。
+* **交互控制台 (Interactive Log)**：自适应主题的多色日志系统，精准反馈任务状态（✅成功 / 🔴错误 / 🔵提示）。
+* **剧本自动化 (SCRIPT 模式)**：支持 TXT、Word、PDF 一键合并，内置 `Smart Grouping` 逻辑实现自动分卷。
+* **异步架构 (Async Engine)**：所有核心任务跑在独立线程，确保处理超大剧本时 GUI 永不卡死。
+* **样式定制 (SRT2ASS 模式)**：可视化调整字幕字体、色值及阴影，配置即时保存至 `.ini` 文件。
 
 ---
 
-### 💡 开发者注
+## 📦 依赖库清单 (requirements.txt / A-Z 排序)
 
-> 在 v3.1 中，如果您在使用 4K 屏幕或双显示器时发现窗口位置异常，程序会自动调用 `ctypes` 尝试校准。如果仍有偏差，请检查系统“显示设置”中的主屏幕标记。
+```text
+customtkinter      # 现代化 UI 框架
+docxcompose        # Word 深度合并
+pypdf              # PDF 合并与处理
+pysrt              # SRT 字幕解析
+pysubs2            # ASS 字幕处理
+python-docx        # Word 文档解析
+pywin32            # Windows COM 组件调用 (Word 驱动)
+reportlab          # PDF 生成与绘图支持
+send2trash         # 安全回收站操作
+
+```
+
+---
+
+## 🛠️ 打包指南
+
+项目已针对 PyInstaller 优化，运行 `build_exe.bat` 即可。
+
+**关键参数说明：**
+
+* `--add-data`：采用递归封装，确保所有子模块打入 EXE。
+* `--collect-all "send2trash"`：解决回收站 DLL 组件丢失问题。
+* `--windowed`：消除启动时的控制台黑窗。

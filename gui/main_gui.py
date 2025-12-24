@@ -53,15 +53,13 @@ class ToolboxGUI:
         # [中间靠右] 配置文件按钮
         ctk.CTkButton(
             header, text="📝 配置", command=self.app.open_config_file, 
-            fg_color="#FBC02D", hover_color="#00D4F5", text_color="black", width=90, height=28,
-            font=self.fonts["normal"]
+            fg_color="#FBC02D", hover_color="#C08B06", text_color="black", width=85, height=28, font=("微软雅黑", 13, "bold")
         ).pack(side="right", padx=5)
         
         # [中间靠右] ASS样式配置按钮
         ctk.CTkButton(
             header, text="🎨 ASS样式", command=self.ass_manager.open, 
-            fg_color="#D851D8", hover_color="#00D4F5",text_color="black", width=90, height=28,
-            font=self.fonts["normal"]
+            fg_color="#D851D8", hover_color="#A72DA7",text_color="black", width=85, height=28,font=("微软雅黑", 13, "bold")
         ).pack(side="right", padx=5)
 
         # 2. 路径输入行
@@ -89,21 +87,34 @@ class ToolboxGUI:
         for text, var in [("TXT", self.app.do_txt), ("Word", self.app.do_word), ("PDF", self.app.do_pdf)]:
             ctk.CTkCheckBox(
                 checkbox_frame, text=text, variable=var, width=70,
-                font=("Microsoft YaHei", 13, "bold")
+                font=("微软雅黑", 13, "bold")
             ).pack(side="left")
 
-        # [新位置] 智能分卷：放在 PDF 选框右边
+        # 智能分卷
         ctk.CTkSwitch(
             checkbox_frame, 
             text="智能分卷", 
             variable=self.app.enable_grouping,
-            font=("Microsoft YaHei", 13, "bold")
-        ).pack(side="left", padx=25)
+            font=("微软雅黑", 13, "bold")
+        ).pack(side="left", padx=(25, 15))
+
+        # [新增] 一键清空脚本目录按钮：紧跟在智能分卷右侧
+        self.trash_btn = ctk.CTkButton(
+            checkbox_frame, 
+            text="清空剧本", 
+            command=self.app.clean_script_trash,  # 确保 controller 实现了此方法
+            fg_color="#767676", 
+            hover_color="#989898",
+            width=71,
+            height=29,
+            font=("微软雅黑", 13, "bold")
+        )
+        self.trash_btn.pack(side="left", padx=5)
 
         # 右侧：合并功能按钮
-        ctk.CTkButton(tool_row, text="PDF合并", command=self.app.start_pdf_merge_thread, fg_color="#ED1C24", hover_color="#00D4F5", width=85).pack(side="right", padx=2)
-        ctk.CTkButton(tool_row, text="Word合并", command=self.app.start_win32_thread, fg_color="#2B5797", hover_color="#00D4F5", width=85).pack(side="right", padx=2)
-        ctk.CTkButton(tool_row, text="TXT合并", command=self.app.start_txt_merge_thread, fg_color="#2DFB7C", text_color="black", hover_color="#00D4F5", width=85).pack(side="right", padx=2)
+        ctk.CTkButton(tool_row, text="PDF合并", command=self.app.start_pdf_merge_thread, fg_color="#ED1C24", hover_color="#AF0E13", width=83).pack(side="right", padx=2)
+        ctk.CTkButton(tool_row, text="Word合并", command=self.app.start_win32_thread, fg_color="#2B5797", hover_color="#1C4077", width=83).pack(side="right", padx=2)
+        ctk.CTkButton(tool_row, text="TXT合并", command=self.app.start_txt_merge_thread, fg_color="#B4D0BF", text_color="black", hover_color="#799B86", width=83).pack(side="right", padx=2)
 
         # 4. 操作按钮行 (开始处理 + 清空日志)
         btn_row = ctk.CTkFrame(self.main_frame, fg_color="transparent")
@@ -114,7 +125,9 @@ class ToolboxGUI:
             text="开始处理任务", 
             command=self.app.start_thread, 
             font=("微软雅黑", 14, "bold"), 
-            height=35
+            height=35,
+            fg_color="#038546", 
+            hover_color="#024D20"
         )
         self.app.start_btn.pack(side="left", fill="x", expand=True, padx=(0, 10))
 
@@ -122,10 +135,11 @@ class ToolboxGUI:
             btn_row,
             text="清空日志",
             command=self._clear_log,
+            font=("微软雅黑", 14, "bold"),
             width=100,
             height=35,
             fg_color="#607D8B", 
-            hover_color="#455A64"
+            hover_color="#384C55"
         )
         self.clear_log_btn.pack(side="right")
         

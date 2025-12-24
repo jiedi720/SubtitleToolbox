@@ -1,27 +1,33 @@
 import os
-from function.utils import (
-    generate_output_name, get_save_path, get_organized_path, 
-    smart_group_files, find_files_recursively, parse_subtitle_to_list, clean_filename_title
-)
+# 1. 从新的模块路径导入函数
+from function.paths import get_save_path, get_organized_path
+from function.files import find_files_recursively, smart_group_files
+from function.parsers import parse_subtitle_to_list
+from function.naming import generate_output_name, clean_filename_title
 
 def run_txt_creation_task(target_dir, log_func, progress_bar, root, batch_size=0, output_dir=None):
     log_func(f"[TXT] 开始扫描: {target_dir}")
+    # 使用 files.py 里的递归查找
     files = find_files_recursively(target_dir, ('.srt', '.vtt', '.ass', '.smi'))
     
     if not files:
         return log_func(f"❌ 未找到任何字幕文件")
 
+    # 使用 files.py 里的智能分组
     file_groups = smart_group_files(files, batch_size)
     total_files = len(files)
     count = 0
 
     # 确定基础输出目录
-    base_output_dir = output_dir if output_dir else os.path.join(target_dir, "script")
+    # 如果用户没选 output_dir，默认传 target_dir，让 paths.py 决定创建 script/txt
+    base_output_dir = output_dir if output_dir else target_dir
 
     for group in file_groups:
         if not group: continue
         
+        # 使用 naming.py 里的命名生成
         out_name = generate_output_name([os.path.basename(f) for f in group], ".txt")
+        # 核心改动：这里 get_organized_path 会识别 .txt 并自动创建 script/txt
         out_path = get_organized_path(base_output_dir, out_name)
         
         try:
@@ -30,6 +36,7 @@ def run_txt_creation_task(target_dir, log_func, progress_bar, root, batch_size=0
                     title = clean_filename_title(os.path.basename(fp))
                     outfile.write(f"{'='*50}\n【{title}】\n{'='*50}\n\n")
                     
+                    # 使用 parsers.py 里的解析器
                     content_list = parse_subtitle_to_list(fp)
                     if not content_list:
                         outfile.write("[内容为空或解析失败]\n\n")
@@ -42,7 +49,7 @@ def run_txt_creation_task(target_dir, log_func, progress_bar, root, batch_size=0
                     # CustomTkinter 进度条适配
                     progress_bar.set(count / total_files)
                     root.update_idletasks()
-            log_func(f"📄 已生成: {out_name}")
+            log_func(f"📄 已生成: {os.path.join('script/txt', out_name)}")
         except Exception as e:
             log_func(f"❌ 写入失败 {out_name}: {e}")
 
@@ -50,6 +57,7 @@ def run_txt_creation_task(target_dir, log_func, progress_bar, root, batch_size=0
     progress_bar.set(0)
 
 def run_txt_merge_task(target_dir, log_func, progress_bar, root, output_dir=None):
+    # 合并逻辑：优先查找 script/txt 目录下的文件
     root_files = sorted([os.path.join(target_dir, f) for f in os.listdir(target_dir) 
                         if f.lower().endswith('.txt') and "合并" not in f])
     
@@ -60,7 +68,8 @@ def run_txt_merge_task(target_dir, log_func, progress_bar, root, output_dir=None
         log_func(f"✨ 在根目录发现 {len(root_files)} 个 TXT。")
         target_files = root_files
     else:
-        sub_dir = os.path.join(target_dir, "txt")
+        # 适配新的分类路径：检测 script/txt 目录
+        sub_dir = os.path.join(target_dir, "script", "txt")
         if os.path.exists(sub_dir):
             sub_files = sorted([os.path.join(sub_dir, f) for f in os.listdir(sub_dir) 
                                if f.lower().endswith('.txt') and "合并" not in f])
@@ -69,7 +78,7 @@ def run_txt_merge_task(target_dir, log_func, progress_bar, root, output_dir=None
                 save_dir = sub_dir
 
     if not target_files:
-        return log_func("❌ 未找到TXT文件")
+        return log_func("❌ 未找到 TXT 文件")
 
     total = len(target_files)
     out_path = os.path.join(save_dir, "TXT合并.txt")

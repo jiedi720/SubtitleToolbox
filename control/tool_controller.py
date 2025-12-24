@@ -4,6 +4,7 @@ from tkinter import messagebox
 from logic.txt_logic import run_txt_merge_task
 from logic.pdf_logic import run_pdf_merge_task
 from logic.word_logic import run_win32_merge_task
+from function.trash import clear_output_to_trash
 
 class ToolController:
     def start_generic_task(self, task_func, log_callback=None):
@@ -21,6 +22,16 @@ class ToolController:
             kwargs={'output_dir': self.get_output_dir()}, 
             daemon=True
         ).start()
+        
+    def clean_script_trash(self):
+        """点击清理按钮时触发"""
+        target_dir = self.path_var.get().strip()
+        if not target_dir or not os.path.exists(target_dir):
+            messagebox.showwarning("提示", "请先选择有效的源目录")
+            return
+            
+        # 调用工具
+        clear_output_to_trash(target_dir, self.log)    
 
     def start_win32_thread(self): 
         self.start_generic_task(run_win32_merge_task, lambda m: self.log(m, tag="word_blue"))

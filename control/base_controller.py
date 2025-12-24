@@ -2,7 +2,7 @@ import os
 import tkinter as tk
 import customtkinter as ctk
 from config.settings import CONFIG_FILE, SettingsHandler, init_fonts
-from font.ass import DEFAULT_KOR_STYLE, DEFAULT_CHN_STYLE
+from font.srt2ass import DEFAULT_KOR_STYLE, DEFAULT_CHN_STYLE
 
 class BaseController:
     def __init__(self, root, startup_path=None, startup_out=None):

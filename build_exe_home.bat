@@ -3,16 +3,16 @@
 chcp 65001 >nul
 
 echo ============================================
-echo   SubtitleToolbox v3.0 自动化打包程序 (GUI模式)
+echo   SubtitleToolbox 自动化打包程序
 echo ============================================
 
 :: 执行 PyInstaller 
-:: --windowed: 隐藏控制台黑窗口
-:: --distpath: 注意末尾不要直接用 \"，这里改用正斜杠以防转义错误
+:: 注意：^ 符号后严禁有任何空格
 python -m PyInstaller --noconfirm --onefile --windowed ^
 --name="SubtitleToolbox" ^
 --collect-all "tkinter" ^
 --collect-all "customtkinter" ^
+--collect-all "send2trash" ^
 --icon="E:\OneDrive\PythonProject\SubtitleToolbox\resources\SubtitleToolbox.ico" ^
 --add-data "logic;logic" ^
 --add-data "control;control" ^
@@ -42,6 +42,6 @@ python -m PyInstaller --noconfirm --onefile --windowed ^
 echo.
 echo --------------------------------------------
 echo 打包执行完毕！
-echo 已启用 --windowed 模式，运行 EXE 将不再弹出黑窗口。
+echo 已启用 --windowed 模式。
 echo --------------------------------------------
 pause

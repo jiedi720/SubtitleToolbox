@@ -11,7 +11,7 @@ class LogComponent:
             "light_bg": "#f9f9f9",
             "dark_fg": "#ffffff",
             "light_fg": "#000000",
-            "pdf_red": "#ED1C24",
+            "pdf_red": "#FC0273",
             "word_blue": "#2189CF",
             "success_green": "#2ecc71", # 路径成功绿色
             "error_red": "#e74c3c"      # 路径失败红色
