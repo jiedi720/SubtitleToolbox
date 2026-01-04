@@ -1,87 +1,52 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+SubtitleToolbox 主入口文件
+
+该文件负责初始化应用程序，设置Python路径，加载资源文件，
+创建应用实例和控制器，并启动GUI界面。
+"""
+
 import os
 import sys
-import ctypes
-from ctypes import wintypes
-import customtkinter as ctk
+
+# 获取当前文件所在目录和GUI目录
+base_dir = os.path.dirname(os.path.abspath(__file__))
+gui_dir = os.path.join(base_dir, "gui")
+
+# 添加项目目录到Python路径，确保模块能正确导入
+if base_dir not in sys.path:
+    sys.path.insert(0, base_dir)
+if gui_dir not in sys.path:
+    sys.path.insert(0, gui_dir)
+
+# 先导入 Icons_rc，确保资源文件在 UI 加载前可用
+# 将 Icons_rc 添加到 sys.modules 中，以便后续导入时可以直接找到
+import importlib.util
+spec = importlib.util.spec_from_file_location("Icons_rc", os.path.join(gui_dir, "Icons_rc.py"))
+Icons_rc = importlib.util.module_from_spec(spec)
+sys.modules["Icons_rc"] = Icons_rc
+spec.loader.exec_module(Icons_rc)
+
+from PySide6.QtWidgets import QApplication
 from control.main_controller import UnifiedApp
 
-# 1. 开启 DPI 意识
-try:
-    ctypes.windll.shcore.SetProcessDpiAwareness(1)
-except Exception:
-    try:
-        ctypes.windll.user32.SetProcessDPIAware()
-    except Exception:
-        pass
-
-def center_window(root, width, height):
-    """
-    针对多屏 + 强缩放环境：使用比例加成法防止左上偏移
-    """
-    root.attributes('-alpha', 0.0)
-    root.update_idletasks()
-
-    class MONITORINFO(ctypes.Structure):
-        _fields_ = [
-            ("cbSize", wintypes.DWORD),
-            ("rcMonitor", wintypes.RECT),
-            ("rcWork", wintypes.RECT),
-            ("dwFlags", wintypes.DWORD),
-        ]
-
-    # 1. 获取主屏幕物理信息
-    h_monitor = ctypes.windll.user32.MonitorFromWindow(0, 0x1)
-    mi = MONITORINFO()
-    mi.cbSize = ctypes.sizeof(MONITORINFO)
-    
-    if ctypes.windll.user32.GetMonitorInfoW(h_monitor, ctypes.byref(mi)):
-        # 获取工作区物理像素 (含副屏偏移)
-        phys_x = mi.rcWork.left
-        phys_y = mi.rcWork.top
-        phys_w = mi.rcWork.right - mi.rcWork.left
-        phys_h = mi.rcWork.bottom - mi.rcWork.top
-        
-        # 2. 获取缩放因子
-        # 注意：如果窗口偏左上，通常是因为 scaling 没起作用或者起反作用了
-        scaling = root._get_window_scaling()
-        
-        # 3. 计算物理中心点
-        # 我们先在物理世界计算出中心坐标
-        phys_center_x = phys_x + (phys_w - (width * scaling)) // 2
-        phys_center_y = phys_y + (phys_h - (height * scaling)) // 2
-        
-        # 4. 转换回逻辑坐标
-        # 如果除法导致左上，说明我们需要确保结果至少是物理中点的一部分
-        logic_x = int(phys_center_x / scaling)
-        logic_y = int(phys_center_y / scaling)
-
-        # --- 暴力修正区 ---
-        # 既然你一直反馈“左上”，说明 logic_x/y 还是算小了。
-        # 我们这里手动大幅度向右下推移，直到对齐为止。
-        logic_x += 145 # 向右推 150 像素
-        logic_y += 80  # 向下推 80 像素
-        
-        root.geometry(f"{width}x{height}+{max(0, logic_x)}+{max(0, logic_y)}")
-    else:
-        # 极简回退
-        root.geometry(f"{width}x{height}+200+200")
-
-    root.resizable(False, False)
-    root.update()
-    root.attributes('-alpha', 1.0)
-
 if __name__ == "__main__":
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    if base_dir not in sys.path:
-        sys.path.insert(0, base_dir)
-
-    root = ctk.CTk()
-    root.title("SubtitleToolbox")
+    # 创建PySide6应用实例
+    app = QApplication(sys.argv)
     
-    window_width = 800
-    window_height = 680
+    # 初始化字体设置（在创建控制器之前）
+    try:
+        from logic.pdf_logic import init_fonts
+        init_fonts()
+    except Exception as e:
+        print(f"字体初始化失败: {e}")
     
-    center_window(root, window_width, window_height)
+    # 创建控制器实例，初始化主窗口
+    controller = UnifiedApp(None)
     
-    app = UnifiedApp(root)
-    root.mainloop()
+    # 显示主窗口
+    controller.gui.show()
+    
+    # 运行应用程序，进入事件循环
+    sys.exit(app.exec())

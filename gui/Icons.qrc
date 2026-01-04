@@ -1,0 +1,11 @@
+<RCC>
+  <qresource prefix="/">
+    <file>../resources/Open.ico</file>
+    <file>../resources/PDF.ico</file>
+    <file>../resources/Save.ico</file>
+    <file>../resources/SubtitleToolbox.ico</file>
+    <file>../resources/txt.ico</file>
+    <file>../resources/Word.ico</file>
+    <file>../resources/checkmark.png</file>
+  </qresource>
+</RCC>

@@ -1,3 +1,8 @@
+"""
+Word文档生成与合并模块
+负责将字幕文件转换为Word文档，并提供Word文档合并功能。
+"""
+
 import os
 import pythoncom
 from docx.shared import Pt, RGBColor, Mm
@@ -15,34 +20,51 @@ try:
 except ImportError: 
     HAS_WIN32 = False
 
-# --- 核心修改：按照拆分后的模块进行导入 ---
+# 导入自定义模块
 from function.paths import get_organized_path, get_save_path
-from function.files import find_files_recursively, smart_group_files
+from function.files import find_files_recursively
+from function.volumes import smart_group_files
 from function.parsers import parse_subtitle_to_list
 from function.naming import generate_output_name, clean_filename_title
-# ---------------------------------------
 
-def run_word_creation_task(target_dir, log_func, progress_bar, root, batch_size=0, output_dir=None):
-    if not HAS_DOCX: return log_func("❌ 错误: 缺少 python-docx 库")
+def run_word_creation_task(target_dir, log_func, progress_bar, root, batch_size=0, output_dir=None, volume_pattern="智能"):
+    """运行Word文档生成任务
     
-    log_func(f"[Word生成] 扫描: {target_dir}")
-    # 使用 files.py 的递归查找
+    从指定目录扫描字幕文件，生成带时间戳的Word文档。
+    
+    Args:
+        target_dir: 目标目录
+        log_func: 日志记录函数
+        progress_bar: 进度条信号
+        root: 根窗口
+        batch_size: 批量大小
+        output_dir: 输出目录
+        volume_pattern: 分卷模式
+    """
+    if not HAS_DOCX: 
+        return log_func("❌ 错误: 缺少 python-docx 库")
+    
+    log_func(f"[Word生成] 扫描目录: {target_dir.replace('/', '\\')}", tag="word_blue")
+    # 递归查找字幕文件
     files = find_files_recursively(target_dir, ('.srt', '.vtt', '.ass'))
-    if not files: return log_func("❌ 未找到字幕。")
+    if not files: 
+        return log_func("❌ 未找到字幕。")
 
-    # 使用 files.py 的智能分组
+    # 智能分组文件
     file_groups = smart_group_files(files, batch_size)
     total_files = len(files)
     count = 0
 
-    # 路径逻辑适配：不要在此手动拼接 "script"
+    # 确定基础输出目录
     base_output_dir = output_dir if output_dir else target_dir
 
     for group in file_groups:
-        if not group: continue
-        # 使用 naming.py 的命名生成
-        out_name = generate_output_name([os.path.basename(f) for f in group], ".docx")
-        # 核心改动：get_organized_path 会识别 .docx 并自动创建 script/word
+        if not group: 
+            continue
+        
+        # 生成输出文件名
+        out_name = generate_output_name([os.path.basename(f) for f in group], ".docx", volume_pattern)
+        # 获取组织化路径
         out_path = get_organized_path(base_output_dir, out_name)
         
         try:
@@ -53,13 +75,15 @@ def run_word_creation_task(target_dir, log_func, progress_bar, root, batch_size=
                 section.top_margin = section.bottom_margin = Mm(25)
                 section.left_margin = section.right_margin = Mm(25)
                 
+                # 设置页眉
                 header_para = section.header.paragraphs[0]
                 header_para.text = title_text
                 header_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
+                # 添加标题
                 doc.add_heading(title_text, level=1)
                 
-                # 使用 parsers.py 的解析器
+                # 解析字幕内容
                 content_list = parse_subtitle_to_list(fp)
                 
                 if not content_list:
@@ -73,56 +97,12 @@ def run_word_creation_task(target_dir, log_func, progress_bar, root, batch_size=
                         p.add_run(text)
 
                 count += 1
-                progress_bar.set(count / total_files)
-                root.update_idletasks()
+                progress_bar.emit(int(count / total_files * 100))
             
             doc.save(out_path)
-            log_func(f"📄 已生成: {os.path.join('script/word', out_name)}")
-        except Exception as e: log_func(f"❌ 失败: {e}")
-    progress_bar.set(0)
-
-def run_win32_merge_task(target_dir, log_func, progress_bar, root, output_dir=None):
-    if not HAS_WIN32: return log_func("❌ 错误: 未安装 pywin32")
-    pythoncom.CoInitialize()
+            log_func(f"📄 已生成: {os.path.join('word', out_name).replace('/', '\\')}", tag="word_blue")
+        except Exception as e: 
+            log_func(f"❌ 失败: {e}")
     
-    root_files = sorted([os.path.join(target_dir, f) for f in os.listdir(target_dir) 
-                        if f.lower().endswith('.docx') and "~$" not in f and "合并" not in f])
-    
-    target_files = root_files if root_files else []
-    save_dir = target_dir
+    progress_bar.emit(0)
 
-    if not target_files:
-        # 适配新的分类层级：检测 script/word
-        sub_dir = os.path.join(target_dir, "script", "word")
-        if os.path.exists(sub_dir):
-            target_files = sorted([os.path.join(sub_dir, f) for f in os.listdir(sub_dir) 
-                                 if f.lower().endswith('.docx') and "~$" not in f and "合并" not in f])
-            save_dir = sub_dir
-
-    if not target_files:
-        pythoncom.CoUninitialize()
-        return log_func("❌ 未找到 Word 文件")
-
-    word = None
-    try:
-        word = win32.Dispatch('Word.Application')
-        word.Visible = False
-        new_doc = word.Documents.Add()
-        sel = word.Selection
-        
-        for i, fp in enumerate(target_files):
-            log_func(f"合并中: {os.path.basename(fp)}")
-            sel.InsertFile(os.path.abspath(fp))
-            if i < len(target_files)-1: sel.InsertBreak(Type=7)
-            progress_bar.set((i + 1) / len(target_files))
-            root.update_idletasks()
-        
-        out_path = os.path.join(save_dir, "Word合并.docx")
-        new_doc.SaveAs2(os.path.abspath(out_path), FileFormat=12)
-        new_doc.Close()
-        log_func(f"✅ 合并完成: {out_path}")
-    except Exception as e: log_func(f"❌ 运行错误: {e}")
-    finally:
-        if word: word.Quit()
-        pythoncom.CoUninitialize()
-        progress_bar.set(0)
