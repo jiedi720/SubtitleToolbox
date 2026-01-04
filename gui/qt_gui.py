@@ -252,7 +252,7 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
             COLOR_PDF_RED = QColor(255, 100, 100)    # 浅红色
             COLOR_SUCCESS = QColor(100, 200, 100)    # 浅绿色
         
-        # 判断并设置颜色
+        # 判断是否需要特殊颜色
         text_color = None
         
         # 检查Word相关日志
@@ -273,15 +273,19 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         # 检查成功日志
         elif "✅" in message:
             text_color = COLOR_SUCCESS
-        else:
-            # 默认颜色使用系统文本颜色，会自动跟随主题
-            text_color = palette.color(QPalette.ColorRole.Text)
+        # 其他日志不设置颜色，使用默认的调色板颜色（会自动跟随主题）
         
-        # 使用QTextCursor和QTextCharFormat插入文本
+        # 使用QTextCursor插入文本
         cursor = self.Log.textCursor()
-        format = QTextCharFormat()
-        format.setForeground(text_color)
-        cursor.insertText(message + "\n", format)
+        
+        if text_color:
+            # 只有特殊日志才设置颜色
+            format = QTextCharFormat()
+            format.setForeground(text_color)
+            cursor.insertText(message + "\n", format)
+        else:
+            # 默认日志不设置颜色，使用调色板的默认文本颜色
+            cursor.insertText(message + "\n")
         
         self.Log.ensureCursorVisible()
     
