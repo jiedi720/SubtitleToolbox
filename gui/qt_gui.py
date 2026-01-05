@@ -37,6 +37,9 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         from PySide6.QtGui import QPalette, QColor, QIcon, QPixmap, QPainter, QImage
         from PySide6.QtCore import Qt
         
+        # 设置窗口图标
+        self.setWindowIcon(QIcon(":/resources/SubtitleToolbox.ico"))
+        
         # 为使用 fromTheme 图标的按钮应用固定的黑色图标
         for btn in [self.RefreshSettings, self.OpenSettings, self.DeleteFiles, self.ClearLogs, self.Start]:
             # 获取当前图标

@@ -49,7 +49,7 @@ SubtitleToolbox/
 │   ├── log_gui.py             # 交互式多色控制台组件
 │   ├── qt_gui.py              # 主面板布局与组件集成
 │   ├── theme.py               # 主题切换模块
-│   └── ui_Gui_SubtitleToolbox.py  # UI界面定义文件
+│   └── ui_SubtitleToolbox.py  # UI界面定义文件
 │
 ├── logic/                     # 业务逻辑层 (Logic)
 │   ├── __init__.py            # 逻辑模块统一导入接口
@@ -58,13 +58,12 @@ SubtitleToolbox/
 │   └── word_logic.py          # Word文档生成
 │
 └── resources/                 # 外部资源
-    ├── Open.ico               # 打开文件夹图标
     ├── PDF.ico                # PDF文件图标
-    ├── Save.ico               # 保存图标
     ├── SubtitleToolbox.ico    # 程序封装图标
     ├── Word.ico               # Word文件图标
     ├── checkmark.png          # 勾选标记图标
-    └── txt.ico                # TXT文件图标
+    ├── txt.ico                # TXT文件图标
+    └── SubtitleToolbox.ui     # Qt Designer UI设计文件
 
 ```
 
@@ -99,9 +98,10 @@ SubtitleToolbox/
 * **安全清理 (Cleanup Tool)**：使用 `send2trash` 安全移除临时文件，支持文件锁定（占用）自动识别与报红提示，永不删除 .srt 原始文件。
 * **交互控制台 (Interactive Log)**：自适应主题的多色日志系统，精准反馈任务状态（✅成功 / 🔴错误 / 🔵Word / 📄PDF）。
 * **异步架构 (Async Engine)**：所有核心任务跑在独立线程，确保处理超大剧本时 GUI 永不卡死。
-* **主题切换**：支持浅色/深色/系统三种主题模式，实时切换。
+* **主题切换**：支持浅色/深色/系统三种主题模式，实时切换，主题设置自动保存。
 * **配置管理**：所有设置自动保存至 `.ini` 文件，支持多预设管理。
 * **智能路径处理**：自动分类输出文件到对应目录（pdf/、word/、txt/、srt/）。
+* **固定图标颜色**：按钮图标颜色固定为黑色，不随主题变化，确保视觉一致性。
 
 ---
 
@@ -182,3 +182,5 @@ pip install ^
 **多线程设计**：所有耗时任务均在独立线程中执行，通过信号槽机制与 UI 通信，确保界面响应流畅。
 
 **模块化设计**：每个功能模块独立封装，便于维护和扩展。
+
+**UI 设计**：使用 Qt Designer 设计界面，通过 PySide6 实现，支持主题切换和自定义样式。
