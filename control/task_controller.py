@@ -51,11 +51,11 @@ class TaskController:
                 volume_pattern = self.volume_pattern if hasattr(self, 'volume_pattern') else "智能"
                 
                 # 执行各类输出任务
-                if self.do_pdf:
+                if self.output2pdf:
                     run_pdf_task(target_dir, lambda m, **kwargs: self.log(m, **kwargs), self.update_progress, self.root, batch, final_out, volume_pattern)
-                if self.do_word:
+                if self.output2word:
                     run_word_creation_task(target_dir, lambda m, **kwargs: self.log(m, **kwargs), self.update_progress, self.root, batch, final_out, volume_pattern)
-                if self.do_txt:
+                if self.output2txt:
                     run_txt_creation_task(target_dir, lambda m, **kwargs: self.log(m, **kwargs), self.update_progress, self.root, batch, final_out, volume_pattern)
             elif self.task_mode == "Merge":
                 # 执行合并任务
@@ -85,6 +85,43 @@ class TaskController:
                         run_txt_merge_task(target_dir, self.log, self.update_progress, self.root, output_dir=final_out)
                 except Exception as e:
                     self.log(f"❌ Merge模式处理失败: {e}")
+            elif self.task_mode == "AutoSub":
+                # 执行自动字幕生成任务
+                try:
+                    from function.AutoSubtitles import SubtitleGenerator
+                    
+                    # 获取模型配置
+                    model_config = self.get_whisper_model_config()
+                    model_size = model_config["model_size"]
+                    model_path = model_config["model_path"]
+                    
+                    # 创建字幕生成器
+                    generator = SubtitleGenerator(
+                        model_size=model_size,
+                        model_path=model_path,
+                        device="auto"
+                    )
+                    
+                    # 初始化模型
+                    generator.initialize_model(progress_callback=lambda m: self.log(m))
+                    
+                    # 批量处理
+                    results = generator.batch_process(
+                        input_dir=target_dir,
+                        output_format="srt",
+                        progress_callback=lambda m: self.log(m)
+                    )
+                    
+                    # 统计结果
+                    success_count = sum(1 for _, _, success in results if success)
+                    fail_count = len(results) - success_count
+                    
+                    self.log(f"\n✓ 处理完成: 成功 {success_count} 个，失败 {fail_count} 个")
+                    
+                except Exception as e:
+                    self.log(f"❌ AutoSub模式处理失败: {e}")
+                    import traceback
+                    self.log(f"详细错误: {traceback.format_exc()}")
             
             self.log("✅ 任务流处理完毕。")
         except Exception as e: 
@@ -99,12 +136,20 @@ class TaskController:
         获取当前样式设置
         
         Returns:
-            dict: 包含韩文字幕样式和中文字幕样式的字典
+            dict: 包含外语字幕样式和中文字幕样式的字典
         """
+        # 根据当前预设确定外语键名
+        lang_key_mapping = {
+            "kor_chn": "kor",
+            "jpn_chn": "jpn",
+            "eng_chn": "eng"
+        }
+        lang_key = lang_key_mapping.get(self.ass_pattern, "kor")
+        
         if hasattr(self, 'kor_panel_ui'):
             # 如果有UI面板，从面板获取样式
-            kor_style = self.construct_style_line(self.kor_parsed["raw"], self.kor_panel_ui, "KOR")
+            lang_style = self.construct_style_line(self.kor_parsed["raw"], self.kor_panel_ui, lang_key.upper())
             chn_style = self.construct_style_line(self.chn_parsed["raw"], self.chn_panel_ui, "CHN")
-            return {"kor": kor_style, "chn": chn_style}
+            return {lang_key: lang_style, "chn": chn_style}
         # 否则返回解析后的默认样式
-        return {"kor": self.kor_parsed["raw"], "chn": self.chn_parsed["raw"]}
+        return {lang_key: self.kor_parsed["raw"], "chn": self.chn_parsed["raw"]}

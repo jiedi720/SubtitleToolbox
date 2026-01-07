@@ -20,14 +20,6 @@ if base_dir not in sys.path:
 if gui_dir not in sys.path:
     sys.path.insert(0, gui_dir)
 
-# 先导入 Icons_rc，确保资源文件在 UI 加载前可用
-# 将 Icons_rc 添加到 sys.modules 中，以便后续导入时可以直接找到
-import importlib.util
-spec = importlib.util.spec_from_file_location("Icons_rc", os.path.join(gui_dir, "Icons_rc.py"))
-Icons_rc = importlib.util.module_from_spec(spec)
-sys.modules["Icons_rc"] = Icons_rc
-spec.loader.exec_module(Icons_rc)
-
 from PySide6.QtWidgets import QApplication
 from control.main_controller import UnifiedApp
 

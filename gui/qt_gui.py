@@ -1,10 +1,8 @@
 import sys
 from PySide6.QtWidgets import QMainWindow, QApplication
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QIcon
 from PySide6.QtCore import Qt
-
-# 先导入 Icons_rc，确保资源文件在 UI 加载前可用
-from . import Icons_rc
+import os
 
 from .ui_SubtitleToolbox import Ui_SubtitleToolbox
 
@@ -33,42 +31,9 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         # 设置UI
         self.setupUi(self)
         
-        # 强制设置按钮图标颜色为黑色，不受主题影响
-        from PySide6.QtGui import QPalette, QColor, QIcon, QPixmap, QPainter, QImage
-        from PySide6.QtCore import Qt
-        
         # 设置窗口图标
-        self.setWindowIcon(QIcon(":/resources/SubtitleToolbox.ico"))
-        
-        # 为使用 fromTheme 图标的按钮应用固定的黑色图标
-        for btn in [self.RefreshSettings, self.OpenSettings, self.DeleteFiles, self.ClearLogs, self.Start]:
-            # 获取当前图标
-            icon = btn.icon()
-            if not icon.isNull():
-                # 获取图标的像素图（使用 Normal 模式）
-                pixmap = icon.pixmap(btn.iconSize(), QIcon.Mode.Normal, QIcon.State.Off)
-                if not pixmap.isNull():
-                    # 将像素图转换为图像
-                    image = pixmap.toImage()
-                    
-                    # 遍历所有像素，将非透明像素设置为黑色
-                    for y in range(image.height()):
-                        for x in range(image.width()):
-                            color = image.pixelColor(x, y)
-                            if color.alpha() > 0:  # 非透明像素
-                                image.setPixelColor(x, y, QColor(0, 0, 0, color.alpha()))
-                    
-                    # 转换回像素图
-                    black_pixmap = QPixmap.fromImage(image)
-                    
-                    # 创建新图标
-                    new_icon = QIcon(black_pixmap)
-                    btn.setIcon(new_icon)
-            
-            # 设置调色板
-            palette = btn.palette()
-            palette.setColor(QPalette.ColorRole.ButtonText, QColor(0, 0, 0))
-            btn.setPalette(palette)
+        resources_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "resources")
+        self.setWindowIcon(QIcon(os.path.join(resources_dir, "SubtitleToolbox.ico")))
         
         # 配置日志区域
         self.Log.setReadOnly(True)
@@ -79,6 +44,9 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         
         # 连接信号和槽
         self.connect_signals()
+        
+        # 标记初始化完成
+        self._initialized = True
     
     @property
     def fonts(self):
@@ -119,15 +87,18 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         self.RefreshSettings.clicked.connect(self.app.save_current_directory_to_config)
         self.OpenSettings.clicked.connect(self.app.open_config_file)
         
+        # Srt2Ass选项卡中的下拉框
+        self.AssPatternSelect.currentIndexChanged.connect(self._on_ass_pattern_changed)
+        
         # Script选项卡中的输出选项
-        self.Output2PDF.stateChanged.connect(self._on_pdf_state_changed)
-        self.Output2Word.stateChanged.connect(self._on_word_state_changed)
-        self.Output2Txt.stateChanged.connect(self._on_txt_state_changed)
+        self.Output2PDF.toggled.connect(self._on_pdf_state_changed)
+        self.Output2Word.toggled.connect(self._on_word_state_changed)
+        self.Output2Txt.toggled.connect(self._on_txt_state_changed)
         
         # Merge选项卡中的输出选项
-        self.MergePDF.stateChanged.connect(self._on_merge_pdf_state_changed)
-        self.MergeWord.stateChanged.connect(self._on_merge_word_state_changed)
-        self.MergeTxt.stateChanged.connect(self._on_merge_txt_state_changed)
+        self.MergePDF.toggled.connect(self._on_merge_pdf_state_changed)
+        self.MergeWord.toggled.connect(self._on_merge_word_state_changed)
+        self.MergeTxt.toggled.connect(self._on_merge_txt_state_changed)
         
         # 标签页切换信号
         self.Function.currentChanged.connect(self._on_tab_changed)
@@ -145,6 +116,13 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         self.actionDark.triggered.connect(lambda: self.theme_change("Dark"))
         self.OpenSettings_2.triggered.connect(self.app.open_config_file)
         
+        # AutoSub标签页中的按钮
+        self.SelectWhisperModel.clicked.connect(self._select_whisper_model_dir)
+        self.OpenWhisperModel.clicked.connect(self._open_whisper_model_dir)
+        
+        # Whisper模型选择下拉框信号
+        self.WhisperModelSelect.currentIndexChanged.connect(self._on_whisper_model_changed)
+        
         # 连接控制器信号到GUI槽函数（线程安全更新）
         if hasattr(self.app, 'update_log'):
             self.app.update_log.connect(self.log)
@@ -153,6 +131,19 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         if hasattr(self.app, 'enable_start_button'):
             self.app.enable_start_button.connect(self.Start.setEnabled)
         self.SaveSettings_2.triggered.connect(self.app.save_settings)
+    
+    def closeEvent(self, event):
+        """
+        窗口关闭事件处理
+        
+        Args:
+            event: 关闭事件
+        """
+        # 保存设置
+        if hasattr(self.app, 'save_settings'):
+            self.app.save_settings()
+        # 接受关闭事件
+        event.accept()
     
     def _browse_source_dir(self):
         """浏览并选择源文件目录"""
@@ -182,35 +173,35 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         """输出路径输入框变化时同步到控制器"""
         self.app.output_path_var = text
     
-    def _on_pdf_state_changed(self, state):
+    def _on_pdf_state_changed(self, checked):
         """PDF输出选项变化时同步到控制器"""
-        if hasattr(self.app, 'do_pdf'):
-            self.app.do_pdf = (state == 2)  # 2表示Checked状态
+        if hasattr(self.app, 'output2pdf'):
+            self.app.output2pdf = checked
     
-    def _on_word_state_changed(self, state):
+    def _on_word_state_changed(self, checked):
         """Word输出选项变化时同步到控制器"""
-        if hasattr(self.app, 'do_word'):
-            self.app.do_word = (state == 2)  # 2表示Checked状态
+        if hasattr(self.app, 'output2word'):
+            self.app.output2word = checked
     
-    def _on_txt_state_changed(self, state):
+    def _on_txt_state_changed(self, checked):
         """Txt输出选项变化时同步到控制器"""
-        if hasattr(self.app, 'do_txt'):
-            self.app.do_txt = (state == 2)  # 2表示Checked状态
+        if hasattr(self.app, 'output2txt'):
+            self.app.output2txt = checked
     
-    def _on_merge_pdf_state_changed(self, state):
+    def _on_merge_pdf_state_changed(self, checked):
         """Merge PDF选项变化时同步到控制器"""
         if hasattr(self.app, 'merge_pdf'):
-            self.app.merge_pdf = (state == 2)  # 2表示Checked状态
+            self.app.merge_pdf = checked
     
-    def _on_merge_word_state_changed(self, state):
+    def _on_merge_word_state_changed(self, checked):
         """Merge Word选项变化时同步到控制器"""
         if hasattr(self.app, 'merge_word'):
-            self.app.merge_word = (state == 2)  # 2表示Checked状态
+            self.app.merge_word = checked
     
-    def _on_merge_txt_state_changed(self, state):
+    def _on_merge_txt_state_changed(self, checked):
         """Merge Txt选项变化时同步到控制器"""
         if hasattr(self.app, 'merge_txt'):
-            self.app.merge_txt = (state == 2)  # 2表示Checked状态
+            self.app.merge_txt = checked
     
     def _open_source_dir(self):
         """打开源文件目录"""
@@ -329,7 +320,7 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
     def _on_tab_changed(self, index):
         """
         标签页切换时的处理
-        
+
         Args:
             index: 标签页索引
         """
@@ -338,6 +329,9 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         # 记录到日志区域 - 已取消模式切换提示
         # 更新任务模式
         if hasattr(self.app, 'task_mode'):
+            # 先保存当前模式的路径
+            self._save_current_mode_paths()
+
             # 根据标签页文本设置对应的任务模式
             if tab_text == "Srt2Ass":
                 self.app.task_mode = "Srt2Ass"
@@ -345,9 +339,66 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
                 self.app.task_mode = "Script"
             elif tab_text == "Merge":
                 self.app.task_mode = "Merge"
-            # 保存设置
-            if hasattr(self.app, 'save_settings'):
-                self.app.save_settings()
+            elif tab_text == "AutoSub":
+                self.app.task_mode = "AutoSub"
+
+            # 更新当前路径为新模式的路径
+            self._load_current_mode_paths()
+
+            # 不再在切换标签时保存配置，只在关闭程序时保存
+
+    def _save_current_mode_paths(self):
+        """保存当前任务模式的路径到对应的变量"""
+        if not hasattr(self.app, 'task_mode'):
+            return
+
+        # 从GUI获取当前路径
+        current_path = self.ReadPathInput.text().strip()
+        current_output = self.SavePathInput.text().strip()
+
+        # 根据当前任务模式保存到对应的变量
+        if self.app.task_mode == "Script":
+            self.app.script_dir = current_path
+            self.app.script_output_dir = current_output
+        elif self.app.task_mode == "Merge":
+            self.app.merge_dir = current_path
+            self.app.merge_output_dir = current_output
+        elif self.app.task_mode == "Srt2Ass":
+            self.app.srt2ass_dir = current_path
+            self.app.srt2ass_output_dir = current_output
+        elif self.app.task_mode == "AutoSub":
+            self.app.autosub_dir = current_path
+            self.app.autosub_output_dir = current_output
+
+    def _load_current_mode_paths(self):
+        """加载当前任务模式的路径到GUI"""
+        if not hasattr(self.app, 'task_mode'):
+            return
+
+        # 根据当前任务模式获取对应的路径
+        if self.app.task_mode == "Script":
+            path = self.app.script_dir if hasattr(self.app, 'script_dir') else ""
+            output = self.app.script_output_dir if hasattr(self.app, 'script_output_dir') else ""
+        elif self.app.task_mode == "Merge":
+            path = self.app.merge_dir if hasattr(self.app, 'merge_dir') else ""
+            output = self.app.merge_output_dir if hasattr(self.app, 'merge_output_dir') else ""
+        elif self.app.task_mode == "Srt2Ass":
+            path = self.app.srt2ass_dir if hasattr(self.app, 'srt2ass_dir') else ""
+            output = self.app.srt2ass_output_dir if hasattr(self.app, 'srt2ass_output_dir') else ""
+        elif self.app.task_mode == "AutoSub":
+            path = self.app.autosub_dir if hasattr(self.app, 'autosub_dir') else ""
+            output = self.app.autosub_output_dir if hasattr(self.app, 'autosub_output_dir') else ""
+        else:
+            path = ""
+            output = ""
+
+        # 更新GUI显示
+        self.ReadPathInput.setText(path)
+        self.SavePathInput.setText(output)
+
+        # 更新app的当前路径变量
+        self.app.path_var = path
+        self.app.output_path_var = output
     
     def _on_volume_mode_changed(self, value):
         """
@@ -369,6 +420,99 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
             self.app.volume_pattern = mode
             # 已取消分卷模式切换提示
     
+    def _on_ass_pattern_changed(self, value):
+        """
+        ASS 字体方案选择变化时的处理
+        
+        Args:
+            value: 方案索引
+        """
+        # 获取当前选中的方案名称（中文）
+        pattern_name_cn = self.AssPatternSelect.currentText()
+
+        # 将中文选项转换为英文格式用于内部使用
+        preset_mapping = {
+            "韩上中下": "kor_chn",
+            "日上中下": "jpn_chn",
+            "英上中下": "eng_chn"
+        }
+        pattern_name_en = preset_mapping.get(pattern_name_cn, "kor_chn")
+
+        # 更新控制器的当前预设（使用英文格式）
+        if hasattr(self.app, 'ass_pattern'):
+            self.app.ass_pattern = pattern_name_en
+            # 同时更新config中的ass_pattern（使用英文格式）
+            if hasattr(self.app, 'config'):
+                self.app.config.ass_pattern = pattern_name_en
+            # 刷新解析后的样式
+            self.app.refresh_parsed_styles()
+
+        # 保存设置
+        if hasattr(self.app, 'save_settings'):
+            self.app.save_settings()
+
+        # 记录日志
+        self.log(f"已选择 ASS 字体方案: {pattern_name_cn}")
+    
+    def _open_whisper_model_dir(self):
+        """打开 Whisper 模型目录"""
+        import os
+        
+        # 优先使用 SelectWhisperModel 选择的目录
+        if hasattr(self.app, 'whisper_model_path') and self.app.whisper_model_path:
+            model_dir = self.app.whisper_model_path
+        else:
+            # 默认为源目录下的 models 文件夹
+            model_dir = os.path.join(self.app.path_var.strip(), "models")
+        
+        if not os.path.exists(model_dir):
+            # 如果目录不存在，尝试打开源目录
+            model_dir = self.app.path_var.strip()
+        
+        if model_dir and os.path.exists(model_dir):
+            os.startfile(model_dir)
+    
+    def _select_whisper_model_dir(self):
+        """选择 Whisper 模型目录"""
+        from PySide6.QtWidgets import QFileDialog
+        
+        # 获取当前设置的目录作为默认路径
+        default_dir = ""
+        if hasattr(self.app, 'whisper_model_path') and self.app.whisper_model_path:
+            default_dir = self.app.whisper_model_path
+        elif hasattr(self.app, 'path_var') and self.app.path_var:
+            # 如果没有设置过，使用源目录下的 models 文件夹
+            default_dir = os.path.join(self.app.path_var.strip(), "models")
+        
+        # 弹出目录选择对话框
+        dir_path = QFileDialog.getExistingDirectory(self, "选择 Whisper 模型目录", default_dir)
+        if dir_path:
+            self.app.whisper_model_path = dir_path
+            self.app.save_settings()
+            self.log(f"已选择 Whisper 模型目录: {dir_path}")
+    
+    def _on_whisper_model_changed(self, value):
+        """
+        Whisper 模型选择变化时的处理
+        
+        Args:
+            value: 模型索引
+        """
+        # 获取当前选中的模型名称
+        model_name = self.WhisperModelSelect.currentText()
+        
+        # 更新控制器的模型设置
+        if hasattr(self.app, 'whisper_model'):
+            self.app.whisper_model = model_name
+        
+        # 保存模型选择到配置
+        if hasattr(self.app, 'save_settings'):
+            self.app.save_settings()
+        
+        # 记录日志
+        if model_name != "默认":
+            self.log(f"已选择 Whisper 模型: {model_name}")
+    
 
     
     def _update_gui_from_settings(self):
@@ -388,12 +532,12 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         self.SavePathInput.setText(self.app.output_path_var)
         
         # 更新输出选项复选框
-        if hasattr(self.app, 'do_pdf'):
-            self.Output2PDF.setChecked(self.app.do_pdf)
-        if hasattr(self.app, 'do_word'):
-            self.Output2Word.setChecked(self.app.do_word)
-        if hasattr(self.app, 'do_txt'):
-            self.Output2Txt.setChecked(self.app.do_txt)
+        if hasattr(self.app, 'output2pdf'):
+            self.Output2PDF.setChecked(self.app.output2pdf)
+        if hasattr(self.app, 'output2word'):
+            self.Output2Word.setChecked(self.app.output2word)
+        if hasattr(self.app, 'output2txt'):
+            self.Output2Txt.setChecked(self.app.output2txt)
         
         # 更新Merge选项卡复选框
         if hasattr(self.app, 'merge_pdf'):
@@ -405,14 +549,19 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         
         # 根据task_mode设置当前标签页
         if hasattr(self.app, 'task_mode'):
+            # 阻止信号发射，避免触发不必要的保存
+            self.Function.blockSignals(True)
             # 映射task_mode到标签页索引
             mode_to_index = {
                 "Script": 0,
                 "Merge": 1,
-                "Srt2Ass": 2
+                "Srt2Ass": 2,
+                "AutoSub": 3
             }
             index = mode_to_index.get(self.app.task_mode, 2)  # 默认显示Srt2Ass标签页
             self.Function.setCurrentIndex(index)
+            # 恢复信号发射
+            self.Function.blockSignals(False)
         
         # 更新分卷模式选择
         if hasattr(self.app, 'volume_pattern'):
@@ -428,6 +577,43 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
             self.VolumePatternSelect.setCurrentIndex(index)
             # 恢复信号发射
             self.VolumePatternSelect.blockSignals(False)
+        
+        # 更新Whisper模型选择
+        if hasattr(self.app, 'whisper_model'):
+            # 阻止信号发射
+            self.WhisperModelSelect.blockSignals(True)
+            # 查找模型在下拉框中的索引
+            model_index = self.WhisperModelSelect.findText(self.app.whisper_model)
+            if model_index >= 0:
+                self.WhisperModelSelect.setCurrentIndex(model_index)
+            # 恢复信号发射
+            self.WhisperModelSelect.blockSignals(False)
+        
+        # 更新ASS字体方案选择
+        if hasattr(self.app, 'ass_pattern'):
+            # 阻止信号发射
+            self.AssPatternSelect.blockSignals(True)
+            
+            # 将英文格式转换为中文格式用于UI显示
+            preset_mapping = {
+                "kor_chn": "韩上中下",
+                "jpn_chn": "日上中下",
+                "eng_chn": "英上中下"
+            }
+            pattern_name_cn = preset_mapping.get(self.app.ass_pattern, "韩上中下")
+            
+            # 根据中文方案名称设置选中项
+            # 选项为：0=韩上中下, 1=日上中下, 2=英上中下
+            preset_to_index = {
+                "韩上中下": 0,
+                "日上中下": 1,
+                "英上中下": 2
+            }
+            index = preset_to_index.get(pattern_name_cn, 0)
+            self.AssPatternSelect.setCurrentIndex(index)
+            
+            # 恢复信号发射
+            self.AssPatternSelect.blockSignals(False)
         
         # 恢复信号发射
         self.ReadPathInput.blockSignals(False)

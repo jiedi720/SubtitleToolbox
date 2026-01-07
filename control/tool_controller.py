@@ -33,9 +33,9 @@ class ToolController:
 
         # 启动任务线程
         threading.Thread(
-            target=task_func, 
-            args=(target, final_log, self.update_progress, self.root), 
-            kwargs={'output_dir': self.output_path_var.strip()}, 
+            target=task_func,
+            args=(target, final_log, self.update_progress, self.root),
+            kwargs={'output_dir': self.get_output_dir()},
             daemon=True
         ).start()
         

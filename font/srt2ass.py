@@ -86,16 +86,27 @@ def run_ass_task(target_dir, styles, log_func, progress_bar, root, output_dir=No
 
     # 样式与头信息准备
     ini_styles = get_config_styles(log_func)
-    l_k = styles.get("kor") if styles and styles.get("kor") else ini_styles["kor"]
+    
+    # 动态获取外语样式的键名（可能是kor、jpn或eng）
+    lang_key = None
+    for key in ["kor", "jpn", "eng"]:
+        if key in styles:
+            lang_key = key
+            break
+    
+    if lang_key is None:
+        lang_key = "kor"  # 默认使用kor
+    
+    l_k = styles.get(lang_key) if styles and styles.get(lang_key) else ini_styles.get(lang_key, ini_styles.get("kor", ""))
     l_c = styles.get("chn") if styles and styles.get("chn") else ini_styles["chn"]
     style_name_k = l_k.split(',')[0].replace("Style:", "").strip()
     style_name_c = l_c.split(',')[0].replace("Style:", "").strip()
     
-    hdr = (f"[Script Info]\nScriptType: v4.00+\nWrapStyle: 0\nScaledBorderAndShadow: yes\n\n" 
+    hdr = (f"[Script Info]\nScriptType: v4.00+\nWrapStyle: 0\nScaledBorderAndShadow: yes\n\n"
            f"[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, "
            f"OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, "
-           f"Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n" 
-           f"{l_k}\n{l_c}\n\n" 
+           f"Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n"
+           f"{l_k}\n{l_c}\n\n"
            f"[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text")
 
     # 扫描任务

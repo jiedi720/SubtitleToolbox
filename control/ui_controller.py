@@ -45,7 +45,7 @@ class UIController:
         Args:
             event: 预设切换事件
         """
-        preset_name = self.current_preset_name
+        preset_name = self.ass_pattern
         if preset_name in self.presets:
             # 刷新解析后的样式
             self.refresh_parsed_styles()
