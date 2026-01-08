@@ -159,11 +159,9 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
 
             # 创建字幕生成器
             language_setting = model_config.get("language", None)
-            log_callback(f"DEBUG: 语言设置: {language_setting}")
             
             # 不清理之前的 generator 对象，直接创建新的
             # 使用字典来保存多个 generator 对象，避免覆盖
-            log_callback("DEBUG: 创建新的 generator 对象")
             
             generator = SubtitleGenerator(
                 model_size=model_size,
@@ -172,7 +170,6 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
                 language=language_setting,
                 allow_download=model_config.get("allow_download", False)
             )
-            log_callback(f"DEBUG: generator.language = {generator.language}")
 
             try:
                 # 初始化模型
@@ -231,32 +228,20 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
 
                 log_callback("--- AutoSub任务完成 ---")
                 
-                # 不调用 cleanup()，让 Python 的垃圾回收器自动处理
-                log_callback("DEBUG: [A] 跳过模型清理，让 GC 自动处理")
-                log_callback("DEBUG: [B] AutoSub 任务块完成")
-                
             except Exception as e:
                 log_callback(f"❌ AutoSub模式处理失败: {e}")
                 import traceback
                 log_callback(f"详细错误: {traceback.format_exc()}")
-                log_callback("DEBUG: [E] AutoSub 异常捕获")
                 return False
         
         # 任务完成日志
-        log_callback("DEBUG: [F] 准备输出完成日志")
         log_callback("✅ 任务流处理完毕。")
         log_callback("--- execute_task函数返回 ---")
         
         # 不做任何清理操作，让 Python 的垃圾回收器自然处理
         # 自动模式下 Whisper 的析构函数会卡死，所以不能显式清理
         if task_mode == "AutoSub" and model_config.get("language") is None:
-            log_callback("DEBUG: 自动模式，跳过模型清理（避免析构函数卡死）")
-        
-        # 强制刷新所有输出
-        sys.stdout.flush()
-        sys.stderr.flush()
-        
-        log_callback("DEBUG: [G] execute_task 函数即将返回")
+            log_callback("自动模式，跳过模型清理（避免析构函数卡死）")
         
         # 将 generator 对象保存到全局变量中，防止它被清理
         if 'generator' in locals():
@@ -265,7 +250,6 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
             import time
             language_key = f"{model_config.get('language', 'auto')}_{int(time.time() * 1000)}"
             _global_generator[language_key] = generator
-            log_callback(f"DEBUG: generator 对象已保存到全局变量 (key: {language_key})")
         
         # 不使用 return 语句，直接让函数结束
         # Python 会自动返回 None

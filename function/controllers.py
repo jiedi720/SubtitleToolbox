@@ -254,11 +254,8 @@ class TaskController:
         """在线程中运行任务"""
         success = False
         try:
-            self.log("DEBUG: [1] 任务线程开始")
             self.log("--- 任务启动 ---")
             # 执行任务
-            self.log("DEBUG: [2] 准备调用 execute_task")
-            self.log("DEBUG: [2.5] 即将调用 execute_task...")
             success = execute_task(
                 task_mode=self.task_mode,
                 path_var=self.path_var,
@@ -269,11 +266,8 @@ class TaskController:
                 gui=self.gui,
                 _get_current_styles=self._get_current_styles
             )
-            self.log("DEBUG: [2.6] execute_task 调用完成，返回值: " + str(success))
-            # 如果返回 None，视为 True
             if success is None:
                 success = True
-            self.log("DEBUG: [3] execute_task 返回")
             self.log("--- 任务执行完毕 ---")
         except Exception as e:
             # 捕获任务执行过程中的异常
@@ -282,23 +276,18 @@ class TaskController:
             self.log(f"详细错误: {traceback.format_exc()}")
         finally:
             # 任务完成后恢复GUI状态
-            self.log("DEBUG: [4] 进入 finally 块")
             self.log("--- 任务线程即将结束 ---")
             try:
-                self.log("DEBUG: [5] 开始恢复GUI状态")
                 self.log("--- 恢复GUI状态 ---")
                 # 使用信号在主线程中恢复GUI状态
                 if hasattr(self, 'enable_start_button'):
-                    self.log("DEBUG: [6] 发送 enable_start_button 信号")
                     self.enable_start_button.emit(True)
                 
                 if hasattr(self.gui, 'ProgressBar'):
-                    self.log("DEBUG: [7] 发送 update_progress 信号")
                     self.update_progress.emit(0)
                 
                 self.log("--- GUI状态已恢复 ---")
                 self.log("--- 线程正常退出 ---")
-                self.log("DEBUG: [8] finally 块完成")
             except Exception as e:
                 import traceback
                 self.log(f"❌ 恢复GUI状态时出错: {e}")
@@ -555,7 +544,7 @@ class UnifiedApp(BaseController, UIController, TaskController, ToolController):
         if not current_volume:
             current_volume = self.volume_pattern
 
-        print(f"DEBUG: 处理后 current_path = {current_path}")
+
 
         # 逻辑2和4：如果GUI上有设定，则保存到INI（无论INI里是否有设定）
         # 根据当前任务模式保存到对应的路径变量

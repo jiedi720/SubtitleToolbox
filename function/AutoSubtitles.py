@@ -155,13 +155,10 @@ class SubtitleGenerator:
                 log_callback("正在分析音频...")
 
             # 调用transcribe，启用语言检测
-            # 添加 beam_size 和 best_of 参数来提高速度
-            if log_callback:
-                log_callback("DEBUG: 开始调用 model.transcribe...")
-            
+            # 优化参数以提高处理速度
             segments, info = self.model.transcribe(
                 audio_file,
-                word_timestamps=True,
+                word_timestamps=False,  # 关闭词级时间戳，大幅提高速度
                 language=self.language,  # 使用指定的语言，None 表示自动检测
                 condition_on_previous_text=False,
                 beam_size=1,  # 使用贪心搜索，更快
@@ -173,9 +170,6 @@ class SubtitleGenerator:
                 # 支持混合语言（如果音频中包含多种语言）
                 # faster-whisper 会自动处理混合语言
             )
-
-            if log_callback:
-                log_callback("DEBUG: model.transcribe 调用完成")
 
             # 确保segments被完全处理
             if log_callback:
@@ -190,9 +184,6 @@ class SubtitleGenerator:
                         log_callback(f"WARNING: 达到最大片段数量限制 ({max_segments})")
                     break
                 segments_list.append(segment)
-            
-            if log_callback:
-                log_callback(f"DEBUG: segments 处理完成，共 {len(segments_list)} 个片段")
 
             # 不调用 gc.collect()，因为它可能导致阻塞
 
@@ -221,10 +212,6 @@ class SubtitleGenerator:
                 'en': 'eng',  # 英语
             }
 
-            if log_callback:
-                log_callback(f"DEBUG: self.language = {self.language}")
-                log_callback(f"DEBUG: detected_language = {detected_language}")
-
             # 确定最终使用的语言代码
             # 如果指定了语言，直接使用指定的语言
             # 如果没有指定语言（None），使用 Whisper 自动检测的语言
@@ -239,9 +226,6 @@ class SubtitleGenerator:
                 if log_callback:
                     log_callback(f"自动检测语言: {detected_language if detected_language else '未知'}")
 
-            if log_callback:
-                log_callback(f"DEBUG: final_language = {final_language}")
-
             # 如果检测到语言，添加语言后缀
             if final_language and final_language in language_map:
                 lang_suffix = language_map[final_language]
@@ -255,7 +239,7 @@ class SubtitleGenerator:
 
             # 写入字幕文件
             if log_callback:
-                log_callback("正在写入字幕文件...")
+                log_callback(f"正在写入字幕文件: {os.path.basename(output_file)}")
 
             self._write_subtitle(output_file, segments_list, log_callback)
 
