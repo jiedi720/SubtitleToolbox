@@ -388,6 +388,10 @@ class UnifiedApp(BaseController, UIController, TaskController, ToolController):
         # 最后一次处理事件，确保所有更新都完成
         app.processEvents()
         
+        # 重置进度条为 0，确保程序启动时进度条显示为空
+        if hasattr(self.gui, 'ProgressBar'):
+            self.gui.ProgressBar.setValue(0)
+        
         # 设置窗口关闭事件处理
         self.gui.closeEvent = self.on_close
 

@@ -85,6 +85,18 @@ for ui_file in ui_files:
     print(f"  替换后: {count_after} 处")
     print(f"  实际替换: {actual_replaced} 处")
     
+    # 修复进度条初始值：将 setValue(24) 改为 setValue(0)
+    progress_before = content.count('ProgressBar.setValue(24)')
+    content = content.replace('ProgressBar.setValue(24)', 'ProgressBar.setValue(0)')
+    progress_after = content.count('ProgressBar.setValue(24)')
+    progress_fixed = progress_before - progress_after
+    
+    if progress_fixed > 0:
+        print(f"  修复: ProgressBar.setValue(24) -> ProgressBar.setValue(0)")
+        print(f"  修复前: {progress_before} 处")
+        print(f"  修复后: {progress_after} 处")
+        print(f"  实际修复: {progress_fixed} 处")
+    
     # 如果没有替换，跳过
     if actual_replaced == 0:
         print(f"  [跳过] 没有需要替换的内容")

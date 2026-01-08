@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'SubtitleToolboxbFHPYJ.ui'
+## Form generated from reading UI file 'SubtitleToolboxuYcPHe.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.10.1
 ##
@@ -375,7 +375,7 @@ class Ui_SubtitleToolbox(object):
 "}\n"
 "\n"
 "QTabWidget[theme=\"dark\"]::pane {\n"
-"    background-color: #cecece;    \n"
+"    background-color: #9e9e9e;    \n"
 "    border-radius: 9px;            \n"
 "    border-top-left-radius: 0px;   \n"
 "    border-top-right-radius: 0px;  \n"
