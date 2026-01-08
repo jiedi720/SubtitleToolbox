@@ -9,8 +9,8 @@ import re
 import pysubs2
 import configparser
 import shutil
-from function.cleaners import clean_subtitle_text_ass
-from function.paths import get_organized_path
+from function.parsers import clean_subtitle_text_ass
+from function.file_utils import get_organized_path
 
 # 预设硬编码默认样式
 DEFAULT_KOR_STYLE = "Style: KOR - Noto Serif KR,Noto Serif KR SemiBold,20,&H0026FCFF,&H000000FF,&H50000000,&H00000000,-1,0,0,0,100,100,0.1,0,1,0.6,0,2,10,10,34,1"

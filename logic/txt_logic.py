@@ -4,8 +4,7 @@ TXT文档生成与合并模块
 """
 
 import os
-from function.paths import get_save_path, get_organized_path
-from function.files import find_files_recursively
+from function.file_utils import get_save_path, get_organized_path, find_files_recursively
 from function.volumes import smart_group_files
 from function.parsers import parse_subtitle_to_list
 from function.naming import generate_output_name, clean_filename_title

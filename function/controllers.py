@@ -11,7 +11,7 @@ from PySide6.QtCore import Signal, QObject
 from PySide6.QtWidgets import QDialog, QInputDialog, QMessageBox
 from function.settings import ConfigManager, DEFAULT_KOR_STYLE, DEFAULT_CHN_STYLE
 from function.tasks import execute_task
-from function.tools import start_generic_task, execute_merge_tasks
+from function.merge import execute_merge_tasks
 
 
 class BaseController(QObject):
@@ -291,15 +291,30 @@ class ToolController:
             task_func: 要执行的任务函数
             log_callback: 日志回调函数（可选）
         """
-        start_generic_task(
-            task_func=task_func,
-            path_var=self.path_var,
-            log_callback=log_callback if log_callback else self.log,
-            update_progress=self.update_progress,
-            root=self.root,
-            gui=self.gui,
-            output_dir=self.get_output_dir()
-        )
+        import os
+        import threading
+        from PySide6.QtWidgets import QMessageBox
+        
+        # 获取目标目录
+        target = self.path_var.strip()
+        if not target or not os.path.exists(target): 
+            QMessageBox.critical(None, "错误", "请选择有效目录")
+            return
+        
+        # 设置日志回调
+        final_log = log_callback if log_callback else self.log
+        
+        # 更新进度条
+        if hasattr(self.gui, 'ProgressBar'):
+            self.gui.ProgressBar.setValue(0)
+
+        # 启动任务线程
+        threading.Thread(
+            target=task_func,
+            args=(target, final_log, self.update_progress, self.root),
+            kwargs={'output_dir': self.get_output_dir()},
+            daemon=True
+        ).start()
     
     def execute_merge_tasks(self):
         """

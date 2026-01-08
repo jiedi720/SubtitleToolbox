@@ -4,10 +4,10 @@
 """
 
 # 文件处理相关
-from .files import find_files_recursively
+from .file_utils import find_files_recursively, get_organized_path, get_save_path
 
-# 字幕解析相关
-from .parsers import parse_subtitle_to_list
+# 字幕解析与清洗相关
+from .parsers import parse_subtitle_to_list, clean_subtitle_text_common, clean_subtitle_text_ass
 
 # 分卷逻辑相关
 from .volumes import (
@@ -26,18 +26,6 @@ from .naming import (
     generate_output_name
 )
 
-# 路径处理相关
-from .paths import (
-    get_organized_path,
-    get_save_path
-)
-
-# 文本清洗相关
-from .cleaners import (
-    clean_subtitle_text_common,
-    clean_subtitle_text_ass
-)
-
 # 文件合并相关
 from .merge import (
     run_pdf_merge_task,
@@ -51,9 +39,13 @@ from .trash import clear_output_to_trash
 __all__ = [
     # 文件处理
     'find_files_recursively',
+    'get_organized_path',
+    'get_save_path',
     
-    # 字幕解析
+    # 字幕解析与清洗
     'parse_subtitle_to_list',
+    'clean_subtitle_text_common',
+    'clean_subtitle_text_ass',
     
     # 分卷逻辑
     'smart_group_files',
@@ -67,14 +59,6 @@ __all__ = [
     'clean_filename_title',
     'get_series_name',
     'generate_output_name',
-    
-    # 路径处理
-    'get_organized_path',
-    'get_save_path',
-    
-    # 文本清洗
-    'clean_subtitle_text_common',
-    'clean_subtitle_text_ass',
     
     # 文件合并
     'run_pdf_merge_task',
