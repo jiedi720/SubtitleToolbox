@@ -37,12 +37,11 @@ def apply_theme(mode):
         app.setPalette(palette)  # 应用默认调色板
     elif mode == "Light":
         # 应用浅色主题
-        # 使用保存的原始样式名称或默认样式
-        app.setStyle(_original_style if _original_style else "Windows")
+        app.setStyle(None)  # 使用系统默认样式（如Windows11）
         app.setPalette(palette)  # 应用默认调色板
     elif mode == "Dark":
         # 应用深色主题
-        app.setStyle("Fusion")  # 使用Fusion样式作为基础
+        app.setStyle(None)  # 使用系统默认样式（如Windows11），与Light模式保持一致
         
         # 设置深色主题的各种颜色
         palette.setColor(QPalette.ColorRole.Window, QColor(53, 53, 53))  # 窗口背景色
@@ -58,6 +57,7 @@ def apply_theme(mode):
         palette.setColor(QPalette.ColorRole.Link, QColor(42, 130, 218))  # 链接色
         palette.setColor(QPalette.ColorRole.Highlight, QColor(42, 130, 218))  # 高亮色
         palette.setColor(QPalette.ColorRole.HighlightedText, Qt.GlobalColor.black)  # 高亮文本色
+        palette.setColor(QPalette.ColorRole.PlaceholderText, QColor(128, 128, 128))  # 占位符文本色（浅灰色）
         
         app.setPalette(palette)  # 应用深色调色板
     

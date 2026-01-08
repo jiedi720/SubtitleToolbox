@@ -70,9 +70,9 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         self.ReadPathOpen.clicked.connect(self._open_source_dir)
         self.SavePathOpen.clicked.connect(self._open_output_dir)
         
-        # 路径设置保存按钮
-        self.ReadPathSet.clicked.connect(self.app.save_current_directory_to_config)
-        self.SavePathSet.clicked.connect(self.app.save_current_directory_to_config)
+        # 路径设置保存按钮（不再自动保存配置，只更新内存中的变量）
+        self.ReadPathSet.clicked.connect(self._update_path_from_input)
+        self.SavePathSet.clicked.connect(self._update_path_from_input)
         
         # 路径输入框信号
         self.ReadPathInput.textChanged.connect(self._on_source_path_changed)
@@ -82,10 +82,6 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         self.Start.clicked.connect(self.app.start_thread)
         self.ClearLogs.clicked.connect(self._clear_log)
         self.DeleteFiles.clicked.connect(self._delete_files)
-        
-        # Srt2Ass选项卡中的按钮
-        self.RefreshSettings.clicked.connect(self.app.save_current_directory_to_config)
-        self.OpenSettings.clicked.connect(self.app.open_config_file)
         
         # Srt2Ass选项卡中的下拉框
         self.AssPatternSelect.currentIndexChanged.connect(self._on_ass_pattern_changed)
@@ -114,11 +110,10 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         # 菜单连接
         self.actionLight.triggered.connect(lambda: self.theme_change("Light"))
         self.actionDark.triggered.connect(lambda: self.theme_change("Dark"))
-        self.OpenSettings_2.triggered.connect(self.app.open_config_file)
+        self.actionOpenSettings.triggered.connect(self.app.open_config_file)
         
         # AutoSub标签页中的按钮
         self.SelectWhisperModel.clicked.connect(self._select_whisper_model_dir)
-        self.OpenWhisperModel.clicked.connect(self._open_whisper_model_dir)
         
         # Whisper模型选择下拉框信号
         self.WhisperModelSelect.currentIndexChanged.connect(self._on_whisper_model_changed)
@@ -130,7 +125,7 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
             self.app.update_progress.connect(self.ProgressBar.setValue)
         if hasattr(self.app, 'enable_start_button'):
             self.app.enable_start_button.connect(self.Start.setEnabled)
-        self.SaveSettings_2.triggered.connect(self.app.save_settings)
+        self.actionSaveSettings.triggered.connect(self.app.save_settings)
     
     def closeEvent(self, event):
         """
@@ -172,6 +167,12 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
     def _on_output_path_changed(self, text):
         """输出路径输入框变化时同步到控制器"""
         self.app.output_path_var = text
+    
+    def _update_path_from_input(self):
+        """从输入框更新路径到控制器（不再自动保存配置）"""
+        # 路径已经在 textChanged 信号中同步到控制器了
+        # 这个方法只是为了触发刷新等操作，不保存配置
+        pass
     
     def _on_pdf_state_changed(self, checked):
         """PDF输出选项变化时同步到控制器"""
@@ -232,10 +233,16 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         from .theme import apply_theme
         apply_theme(mode)
         
-        # 刷新 Log 控件，使其使用新的调色板
+        # 设置主题属性，使控件能够根据主题应用不同的样式
+        theme_value = mode.lower()
+        self.Function.setProperty("theme", theme_value)
+        self.menuBar.setProperty("theme", theme_value)
+        
+        # 刷新 Log 控件，重新设置样式表以保持圆角效果
         from PySide6.QtWidgets import QApplication
         app = QApplication.instance()
-        self.Log.setPalette(app.palette())
+        # 重新设置样式表，确保圆角效果
+        self.Log.setStyleSheet(self.Log.styleSheet())
         
         # 保存主题设置
         if hasattr(self.app, 'save_theme_setting'):
@@ -447,10 +454,6 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
             # 刷新解析后的样式
             self.app.refresh_parsed_styles()
 
-        # 保存设置
-        if hasattr(self.app, 'save_settings'):
-            self.app.save_settings()
-
         # 记录日志
         self.log(f"已选择 ASS 字体方案: {pattern_name_cn}")
     
@@ -488,7 +491,6 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         dir_path = QFileDialog.getExistingDirectory(self, "选择 Whisper 模型目录", default_dir)
         if dir_path:
             self.app.whisper_model_path = dir_path
-            self.app.save_settings()
             self.log(f"已选择 Whisper 模型目录: {dir_path}")
     
     def _on_whisper_model_changed(self, value):
@@ -504,10 +506,6 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         # 更新控制器的模型设置
         if hasattr(self.app, 'whisper_model'):
             self.app.whisper_model = model_name
-        
-        # 保存模型选择到配置
-        if hasattr(self.app, 'save_settings'):
-            self.app.save_settings()
         
         # 记录日志
         if model_name != "默认":

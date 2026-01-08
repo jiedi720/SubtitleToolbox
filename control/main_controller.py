@@ -46,13 +46,13 @@ class UnifiedApp(BaseController, UIController, TaskController, ToolController):
             event.accept()
 
     def save_theme_setting(self, new_theme):
-        """更新主题模式并实时保存
+        """更新主题模式（不自动保存配置）
         
         Args:
             new_theme: 新的主题模式（"Light"或"Dark"）
         """
         self.theme_mode = new_theme
-        self.save_settings()
+        # 不再自动保存配置，主题设置将在关闭程序或手动点击"保存配置"菜单时保存
 
     def refresh_config_file(self):
         """刷新配置文件并更新GUI"""
@@ -145,10 +145,8 @@ class UnifiedApp(BaseController, UIController, TaskController, ToolController):
         if current_volume:
             self.volume_pattern = current_volume
 
-        # 保存更新后的配置
-        print(f"DEBUG: 准备保存配置...")
-        self.save_settings()
-        print(f"DEBUG: 配置已保存")
+        # 不再自动保存配置，只更新内存中的变量
+        # 配置将在关闭程序或手动点击"保存配置"菜单时保存
 
         # 更新GUI界面
         if hasattr(self.gui, '_update_gui_from_settings'):
