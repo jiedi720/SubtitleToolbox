@@ -21,7 +21,7 @@ if gui_dir not in sys.path:
     sys.path.insert(0, gui_dir)
 
 from PySide6.QtWidgets import QApplication
-from control.main_controller import UnifiedApp
+from function.controllers import UnifiedApp
 
 if __name__ == "__main__":
     # 创建PySide6应用实例

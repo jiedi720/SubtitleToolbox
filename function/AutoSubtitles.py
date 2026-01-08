@@ -22,7 +22,7 @@ if dll_paths:
 class SubtitleGenerator:
     """字幕生成器核心类"""
     
-    def __init__(self, model_size="large-v3-turbo", model_path=None, device="auto", language=None):
+    def __init__(self, model_size="large-v3-turbo", model_path=None, device="auto", language=None, allow_download=False):
         """
         初始化字幕生成器
         
@@ -31,16 +31,18 @@ class SubtitleGenerator:
             model_path: 本地模型路径（可选）
             device: 设备类型（auto/cuda/cpu）
             language: 指定语言代码（如 'ja', 'ko', 'en', 'zh'），None 表示自动检测
+            allow_download: 是否允许下载模型（默认 False）
         """
         self.model_size = model_size
         self.model_path = model_path
         self.device = device
         self.language = language
+        self.allow_download = allow_download
         self.model = None
         
     def initialize_model(self, progress_callback=None):
         """
-        初始化Whisper模型
+        初始化Whisper模型（仅支持GPU）
         
         Args:
             progress_callback: 进度回调函数，用于报告初始化状态
@@ -53,7 +55,6 @@ class SubtitleGenerator:
                 progress_callback("提示: 使用本地模型路径，不需要下载")
             else:
                 progress_callback(f"正在初始化模型 ({self.model_size})...")
-                progress_callback("提示: 首次使用需要下载模型，这可能需要几分钟时间")
         
         # 验证模型路径
         if self.model_path and not os.path.exists(self.model_path):
@@ -61,11 +62,29 @@ class SubtitleGenerator:
         
         model_input = self.model_path if self.model_path else self.model_size
         
-        # 尝试使用GPU
+        # 如果没有指定本地模型路径，检查是否允许下载
+        if not self.model_path and not self.allow_download:
+            # 检查模型是否已缓存
+            from huggingface_hub import snapshot_download
+            try:
+                cache_dir = snapshot_download(repo_id=f"Systran/{self.model_size}", local_files_only=True)
+                if progress_callback:
+                    progress_callback(f"找到缓存的模型: {cache_dir}")
+            except Exception:
+                # 模型未缓存，提示用户
+                error_msg = f"未找到本地模型: {self.model_size}\n\n"
+                error_msg += "请按以下步骤手动下载模型：\n"
+                error_msg += "1. 访问模型下载地址: https://huggingface.co/Systran/{model_name}\n".format(model_name=self.model_size)
+                error_msg += "2. 下载模型文件到本地\n"
+                error_msg += "3. 在设置中指定本地模型路径\n\n"
+                error_msg += "或者，在设置中允许程序自动下载模型"
+                raise Exception(error_msg)
+        
+        # 只使用GPU处理
+        if progress_callback:
+            progress_callback("正在使用 GPU 加载模型...")
+        
         try:
-            if progress_callback:
-                progress_callback("尝试使用 GPU 加载模型...")
-            
             self.model = WhisperModel(
                 model_input,
                 device="cuda", 
@@ -77,35 +96,21 @@ class SubtitleGenerator:
             if progress_callback:
                 progress_callback("✓ 使用 GPU (CUDA) 进行处理")
                 
-        except Exception as cuda_error:
-            # GPU初始化失败，回退到CPU
+        except Exception as e:
             if progress_callback:
-                progress_callback("GPU不可用，正在使用 CPU...")
-            
-            try:
-                self.model = WhisperModel(
-                    model_input,
-                    device="cpu", 
-                    compute_type="int8"
-                )
-                
-                if progress_callback:
-                    progress_callback("✓ 使用 CPU 进行处理（速度较慢）")
-            except Exception as cpu_error:
-                if progress_callback:
-                    progress_callback(f"CPU初始化也失败: {str(cpu_error)}")
-                raise Exception(f"模型初始化失败: GPU错误 - {str(cuda_error)}, CPU错误 - {str(cpu_error)}")
+                progress_callback(f"GPU初始化失败: {str(e)}")
+                progress_callback("错误: 此功能仅支持 GPU，请确保已正确安装 CUDA 和 cuDNN")
+            raise Exception(f"GPU初始化失败: {str(e)}\n请确保：\n1. 已安装 NVIDIA 驱动\n2. 已安装 CUDA Toolkit\n3. 已安装 cuDNN\n4. GPU 可用")
         
         if self.model is None:
             raise Exception("模型初始化失败: model is None")
     
-    def generate_subtitle(self, audio_file, output_format="srt", progress_callback=None):
+    def generate_subtitle(self, audio_file, progress_callback=None):
         """
         为单个音频文件生成字幕
         
         Args:
             audio_file: 音频文件路径
-            output_format: 输出格式（srt/vtt）
             progress_callback: 进度回调函数
         
         Returns:
@@ -114,9 +119,9 @@ class SubtitleGenerator:
         if not self.model:
             raise Exception("模型未初始化，请先调用 initialize_model()")
         
-        # 生成输出文件名
+        # 生成输出文件名（只使用 SRT 格式）
         base_name = os.path.splitext(audio_file)[0]
-        output_file = f"{base_name}.{output_format}"
+        output_file = f"{base_name}.srt"
         
         try:
             # 使用模型生成字幕
@@ -230,12 +235,12 @@ class SubtitleGenerator:
             # 如果检测到语言，添加语言后缀
             if final_language and final_language in language_map:
                 lang_suffix = language_map[final_language]
-                output_file = f"{base_name}.whisper.[{lang_suffix}].{output_format}"
+                output_file = f"{base_name}.whisper.[{lang_suffix}].srt"
                 if progress_callback:
                     progress_callback(f"输出文件名: {os.path.basename(output_file)}")
             else:
                 # 未检测到语言，使用 [none] 后缀
-                output_file = f"{base_name}.whisper.[none].{output_format}"
+                output_file = f"{base_name}.whisper.[none].srt"
                 if progress_callback:
                     progress_callback(f"未检测到语言，使用默认后缀")
                     progress_callback(f"输出文件名: {os.path.basename(output_file)}")
@@ -244,7 +249,7 @@ class SubtitleGenerator:
             if progress_callback:
                 progress_callback("正在写入字幕文件...")
             
-            self._write_subtitle(output_file, segments_list, output_format, progress_callback)
+            self._write_subtitle(output_file, segments_list, progress_callback)
             
             if progress_callback:
                 progress_callback(f"字幕文件写入完成: {os.path.basename(output_file)}")
@@ -256,67 +261,42 @@ class SubtitleGenerator:
                 progress_callback(f"字幕生成失败: {str(e)}")
             raise
     
-    def _write_subtitle(self, output_file, segments, output_format, progress_callback=None):
+    def _write_subtitle(self, output_file, segments, progress_callback=None):
         """
-        写入字幕文件
+        写入 SRT 格式字幕文件
         
         Args:
             output_file: 输出文件路径
             segments: 字幕片段列表
-            output_format: 输出格式（srt/vtt）
             progress_callback: 进度回调函数
         """
         with open(output_file, "w", encoding="utf-8") as f:
-            if output_format == "srt":
-                # 写入SRT格式
-                for i, segment in enumerate(segments, 1):
-                    if progress_callback:
-                        progress_callback(f"处理片段 {i}/{len(segments)}")
-                    
-                    start_time = segment.start
-                    end_time = segment.end
-                    
-                    def format_time(seconds):
-                        ms = int(seconds * 1000)
-                        s, ms = divmod(ms, 1000)
-                        m, s = divmod(s, 60)
-                        h, m = divmod(m, 60)
-                        return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
-                    
-                    f.write(f"{i}\n")
-                    f.write(f"{format_time(start_time)} --> {format_time(end_time)}\n")
-                    f.write(f"{segment.text.strip()}\n")
-                    f.write("\n")
-            
-            elif output_format == "vtt":
-                # 写入VTT格式
-                f.write("WEBVTT\n\n")
-                for i, segment in enumerate(segments, 1):
-                    if progress_callback:
-                        progress_callback(f"处理片段 {i}/{len(segments)}")
-                    
-                    start_time = segment.start
-                    end_time = segment.end
-                    
-                    def format_time(seconds):
-                        ms = int(seconds * 1000)
-                        s, ms = divmod(ms, 1000)
-                        m, s = divmod(s, 60)
-                        h, m = divmod(m, 60)
-                        return f"{h:02d}:{m:02d}:{s:02d}.{ms:03d}"
-                    
-                    f.write(f"{i}\n")
-                    f.write(f"{format_time(start_time)} --> {format_time(end_time)}\n")
-                    f.write(f"{segment.text.strip()}\n")
-                    f.write("\n")
+            # 写入SRT格式
+            for i, segment in enumerate(segments, 1):
+                if progress_callback:
+                    progress_callback(f"处理片段 {i}/{len(segments)}")
+                
+                start_time = segment.start
+                end_time = segment.end
+                
+                def format_time(seconds):
+                    ms = int(seconds * 1000)
+                    s, ms = divmod(ms, 1000)
+                    m, s = divmod(s, 60)
+                    h, m = divmod(m, 60)
+                    return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+                
+                f.write(f"{i}\n")
+                f.write(f"{format_time(start_time)} --> {format_time(end_time)}\n")
+                f.write(f"{segment.text.strip()}\n")
+                f.write("\n")
     
-    def batch_process(self, input_dir, output_format="srt", progress_callback=None):
+    def batch_process(self, input_dir, progress_callback=None):
         """
-        批量处理目录中的所有MP3文件
+        批量处理目录中的所有MP3文件，生成SRT字幕
         
         Args:
             input_dir: 输入目录
-            output_format: 输出格式（srt/vtt）
             progress_callback: 进度回调函数
         
         Returns:
@@ -348,7 +328,7 @@ class SubtitleGenerator:
                     progress_callback(f"\n正在处理: {os.path.basename(mp3_file)} ({idx+1}/{len(mp3_files)})")
                 
                 try:
-                    output_file = self.generate_subtitle(mp3_file, output_format, progress_callback)
+                    output_file = self.generate_subtitle(mp3_file, progress_callback)
                     results.append((mp3_file, output_file, True))
                     
                     if progress_callback:

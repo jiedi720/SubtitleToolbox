@@ -424,7 +424,8 @@ class ConfigManager:
         return {
             "model_size": model_size,
             "model_path": model_path,
-            "language": language
+            "language": language,
+            "allow_download": False  # 不允许自动下载模型，需要用户手动下载
         }
 
     def sync_from_controller(self, controller):
