@@ -258,6 +258,7 @@ class TaskController:
             self.log("--- 任务启动 ---")
             # 执行任务
             self.log("DEBUG: [2] 准备调用 execute_task")
+            self.log("DEBUG: [2.5] 即将调用 execute_task...")
             success = execute_task(
                 task_mode=self.task_mode,
                 path_var=self.path_var,
@@ -268,6 +269,10 @@ class TaskController:
                 gui=self.gui,
                 _get_current_styles=self._get_current_styles
             )
+            self.log("DEBUG: [2.6] execute_task 调用完成，返回值: " + str(success))
+            # 如果返回 None，视为 True
+            if success is None:
+                success = True
             self.log("DEBUG: [3] execute_task 返回")
             self.log("--- 任务执行完毕 ---")
         except Exception as e:

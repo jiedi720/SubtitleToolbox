@@ -6,6 +6,8 @@
 """
 
 import os
+import sys
+
 from PySide6.QtWidgets import QMessageBox
 from logic.txt_logic import run_txt_creation_task
 from logic.pdf_logic import run_pdf_task
@@ -27,8 +29,15 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
         progress_callback: 进度回调函数
         root: 根窗口对象
         gui: GUI 对象
-        **kwargs: 额外的参数
+        **kwargs: 其他参数
     """
+    # 声明全局变量
+    global _global_generator
+    # 如果全局变量不存在，初始化它
+    try:
+        _global_generator
+    except NameError:
+        _global_generator = None
     # 验证源目录
     target_dir = path_var.strip()
     if not target_dir or not os.path.exists(target_dir):
@@ -151,6 +160,12 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
             # 创建字幕生成器
             language_setting = model_config.get("language", None)
             log_callback(f"DEBUG: 语言设置: {language_setting}")
+            
+            # 清理之前的 generator 对象
+            if _global_generator is not None:
+                log_callback("DEBUG: 清理之前的 generator 对象")
+                _global_generator = None
+            
             generator = SubtitleGenerator(
                 model_size=model_size,
                 model_path=model_path,
@@ -238,9 +253,20 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
         if task_mode == "AutoSub" and model_config.get("language") is None:
             log_callback("DEBUG: 自动模式，跳过模型清理（避免析构函数卡死）")
         
+        # 强制刷新所有输出
+        sys.stdout.flush()
+        sys.stderr.flush()
+        
         log_callback("DEBUG: [G] execute_task 函数即将返回")
-        # 不使用 return 语句，让函数自然结束
-        # return True        
+        
+        # 将 generator 对象保存到全局变量中，防止它被清理
+        if 'generator' in locals():
+            _global_generator = generator
+            log_callback("DEBUG: generator 对象已保存到全局变量")
+        
+        # 不使用 return 语句，直接让函数结束
+        # Python 会自动返回 None
+        # 调用者需要检查 None 并视为 True        
     except Exception as e: 
         log_callback(f"❌ 出错: {e}")
         import traceback
