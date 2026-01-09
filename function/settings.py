@@ -213,7 +213,7 @@ class ConfigManager:
         self.autosub_dir = autosub_config.get("autosub_dir", "")
         self.autosub_output_dir = autosub_config.get("autosub_output_dir", "")
         default_whisper_path = "C:/Users/jiedi/AppData/Roaming/PotPlayerMini64/Model/faster-whisper-large-v3-turbo"
-        raw_model_path = autosub_config.get("Model_dir", default_whisper_path)
+        raw_model_path = autosub_config.get("model_dir", default_whisper_path)
         self.whisper_model_path = os.path.normpath(raw_model_path) if raw_model_path else raw_model_path
         # 加载语言设置
         language_value = autosub_config.get("language", "auto")
@@ -353,7 +353,7 @@ class ConfigManager:
             "AutoSub": {
                 "autosub_dir": self.autosub_dir.strip() if hasattr(self, 'autosub_dir') else "",
                 "autosub_output_dir": self.autosub_output_dir.strip() if hasattr(self, 'autosub_output_dir') else "",
-                "Model_dir": os.path.normpath(self.whisper_model_path) if hasattr(self, 'whisper_model_path') and self.whisper_model_path else "",
+                "model_dir": os.path.normpath(self.whisper_model_path) if hasattr(self, 'whisper_model_path') and self.whisper_model_path else "",
                 "language": self.whisper_language if hasattr(self, 'whisper_language') else "auto"
             }
         }
@@ -393,41 +393,251 @@ class ConfigManager:
     def get_whisper_model_config(self):
         """
         获取 Whisper 模型配置
-        
+
         Returns:
             dict: 包含模型大小、模型路径和语言的字典
         """
+        import os  # 将 import 移到函数开头以避免 UnboundLocalError
         model_size = "large-v3-turbo"  # 默认模型
         model_path = None
         language_value = getattr(self, 'whisper_language', "auto")  # 从属性获取语言设置
         # 将 "auto" 转换为 None，因为 Whisper 需要 None 表示自动检测
         language = None if language_value == "auto" else language_value
-        
+
         # 如果选择了特定模型
         if self.whisper_model and self.whisper_model != "默认":
             model_name = self.whisper_model
-            
+
             # 如果是本地模型
             if model_name.startswith("本地: "):
                 local_model_name = model_name.replace("本地: ", "")
-                model_dir = os.path.join(self.path_var.strip(), "models", local_model_name)
-                
-                # 查找模型文件
-                if os.path.exists(model_dir):
-                    for f in os.listdir(model_dir):
-                        if f.endswith(('.bin', '.safetensors')):
-                            model_path = model_dir
-                            break
-            
+
+                # 优先使用用户通过SelectWhisperModel选择的模型路径
+                if self.whisper_model_path and os.path.exists(self.whisper_model_path):
+                    # 检查用户选择的路径是否包含模型名称（如果是具体模型目录）
+                    if local_model_name.lower() in os.path.basename(self.whisper_model_path).lower():
+                        model_path = self.whisper_model_path
+                    else:
+                        # 如果不是具体模型目录，则在用户选择的路径下查找模型子目录
+                        model_dir = os.path.join(self.whisper_model_path, local_model_name)
+                        if os.path.exists(model_dir):
+                            # 查找模型文件
+                            for f in os.listdir(model_dir):
+                                # 检查是否为目录
+                                item_path = os.path.join(model_dir, f)
+                                if os.path.isdir(item_path):
+                                    if f.endswith('_data') or f in ['assets', 'vocabulary']:
+                                        model_path = model_dir
+                                        break
+                                    continue
+
+                                # 检查文件扩展名
+                                if (f.endswith(('.bin', '.safetensors', '.onnx', '.onnx_data')) or
+                                    f == 'config.json' or f == 'tokenizer.json' or
+                                    f == 'preprocessor_config.json' or f == 'generation_config.json' or
+                                    f.startswith('model.') or f.startswith('vocabulary.') or
+                                    f.startswith('tokenizer.') or f == 'model.onnx' or
+                                    f == 'model.int8.onnx' or f == 'model.float16.onnx' or
+                                    f == 'model.encoder.onnx' or f == 'model.decoder.onnx'):
+                                    model_path = model_dir
+                                    break
+                        else:
+                            # 如果在用户选择的路径下没找到，尝试在源目录下查找
+                            model_dir = os.path.join(self.path_var.strip(), "models", local_model_name)
+                            if os.path.exists(model_dir):
+                                for f in os.listdir(model_dir):
+                                    # 检查是否为目录
+                                    item_path = os.path.join(model_dir, f)
+                                    if os.path.isdir(item_path):
+                                        if f.endswith('_data') or f in ['assets', 'vocabulary']:
+                                            model_path = model_dir
+                                            break
+                                        continue
+
+                                    # 检查文件扩展名
+                                    if (f.endswith(('.bin', '.safetensors', '.onnx', '.onnx_data')) or
+                                        f == 'config.json' or f == 'tokenizer.json' or
+                                        f == 'preprocessor_config.json' or f == 'generation_config.json' or
+                                        f.startswith('model.') or f.startswith('vocabulary.') or
+                                        f.startswith('tokenizer.') or f == 'model.onnx' or
+                                        f == 'model.int8.onnx' or f == 'model.float16.onnx' or
+                                        f == 'model.encoder.onnx' or f == 'model.decoder.onnx'):
+                                        model_path = model_dir
+                                        break
+
             # 如果是预定义模型
             else:
                 model_size = model_name
-                model_path = None  # 预定义模型不需要路径
+                # 尝试在用户设置的模型路径下查找对应模型
+                if self.whisper_model_path and os.path.exists(self.whisper_model_path):
+                    # 检查是否是 Hugging Face 缓存目录结构（包含 blobs, refs, snapshots）
+                    dir_items = []
+                    try:
+                        dir_items = os.listdir(self.whisper_model_path)
+                    except Exception:
+                        pass
+
+                    hf_cache_dirs = ['blobs', 'refs', 'snapshots']
+                    is_hf_cache = all(item in dir_items for item in hf_cache_dirs)
+
+                    actual_model_path = self.whisper_model_path
+                    if is_hf_cache:
+                        # 这是 Hugging Face 缓存目录，自动定位到 snapshots 目录下的实际模型目录
+                        snapshots_dir = os.path.join(self.whisper_model_path, "snapshots")
+                        if os.path.exists(snapshots_dir):
+                            try:
+                                snapshot_items = os.listdir(snapshots_dir)
+                                snapshot_dirs = [item for item in snapshot_items
+                                               if os.path.isdir(os.path.join(snapshots_dir, item))]
+                                if snapshot_dirs:
+                                    # 使用第一个 snapshot 目录
+                                    actual_model_path = os.path.join(snapshots_dir, snapshot_dirs[0])
+                            except Exception:
+                                pass
+
+                    # 检查用户选择的路径本身是否就是模型目录
+                    path_basename = os.path.basename(actual_model_path).lower()
+                    if model_name.lower() in path_basename or is_hf_cache:
+                        # 用户选择了具体模型目录，检查该目录中是否有模型文件
+                        model_files = []
+                        for f in os.listdir(actual_model_path):
+                            # 检查是否为目录
+                            item_path = os.path.join(actual_model_path, f)
+                            if os.path.isdir(item_path):
+                                # 检查目录名称
+                                if f.endswith('_data') or f in ['assets', 'vocabulary']:
+                                    model_files.append(f)
+                                continue
+
+                            # 检查文件扩展名
+                            if (f.endswith(('.bin', '.safetensors', '.onnx', '.onnx_data')) or
+                                f == 'config.json' or   # config.json 是模型配置文件
+                                f == 'tokenizer.json' or # tokenizer.json 是分词器文件
+                                f == 'preprocessor_config.json' or  # 预处理器配置
+                                f == 'generation_config.json' or  # 生成配置
+                                f.startswith('model.') or  # model.* 文件
+                                f.startswith('vocabulary.') or  # 词汇表文件
+                                f.startswith('tokenizer.') or  # 分词器文件
+                                f == 'model.onnx' or  # ONNX 模型文件
+                                f == 'model.int8.onnx' or  # 量化模型
+                                f == 'model.float16.onnx' or  # 半精度模型
+                                f == 'model.encoder.onnx' or  # 编码器
+                                f == 'model.decoder.onnx'):  # 解码器
+                                model_files.append(f)
+
+                        if model_files:
+                            model_path = actual_model_path  # 使用实际模型路径
+                        else:
+                            model_path = None  # 没有模型文件，设为 None
+                    else:
+                        # 用户选择了模型主目录，查找对应模型的子目录
+                        model_subdir = os.path.join(self.whisper_model_path, model_name)
+                        if os.path.exists(model_subdir):
+                            # 检查子目录中是否有模型文件
+                            model_files = []
+                            for f in os.listdir(model_subdir):
+                                # 检查是否为目录
+                                item_path = os.path.join(model_subdir, f)
+                                if os.path.isdir(item_path):
+                                    # 检查目录名称
+                                    if f.endswith('_data') or f in ['assets', 'vocabulary']:
+                                        model_files.append(f)
+                                    continue
+
+                                # 检查文件扩展名
+                                if (f.endswith(('.bin', '.safetensors', '.onnx', '.onnx_data')) or
+                                    f == 'config.json' or   # config.json 是模型配置文件
+                                    f == 'tokenizer.json' or # tokenizer.json 是分词器文件
+                                    f == 'preprocessor_config.json' or  # 预处理器配置
+                                    f == 'generation_config.json' or  # 生成配置
+                                    f.startswith('model.') or  # model.* 文件
+                                    f.startswith('vocabulary.') or  # 词汇表文件
+                                    f.startswith('tokenizer.') or  # 分词器文件
+                                    f == 'model.onnx' or  # ONNX 模型文件
+                                    f == 'model.int8.onnx' or  # 量化模型
+                                    f == 'model.float16.onnx' or  # 半精度模型
+                                    f == 'model.encoder.onnx' or  # 编码器
+                                    f == 'model.decoder.onnx'):  # 解码器
+                                    model_files.append(f)
+
+                            if model_files:
+                                model_path = model_subdir  # 使用子目录作为模型路径
+                            else:
+                                # 检查子目录是否是 Hugging Face 缓存目录结构
+                                dir_items = []
+                                try:
+                                    dir_items = os.listdir(model_subdir)
+                                except Exception:
+                                    pass
+
+                                hf_cache_dirs = ['blobs', 'refs', 'snapshots']
+                                is_hf_cache = all(item in dir_items for item in hf_cache_dirs)
+
+                                if is_hf_cache:
+                                    # 这是 Hugging Face 缓存目录，自动定位到 snapshots 目录下的实际模型目录
+                                    snapshots_dir = os.path.join(model_subdir, "snapshots")
+                                    if os.path.exists(snapshots_dir):
+                                        try:
+                                            snapshot_items = os.listdir(snapshots_dir)
+                                            snapshot_dirs = [item for item in snapshot_items
+                                                           if os.path.isdir(os.path.join(snapshots_dir, item))]
+                                            if snapshot_dirs:
+                                                # 使用第一个 snapshot 目录
+                                                model_path = os.path.join(snapshots_dir, snapshot_dirs[0])
+                                                model_files = True  # 标记为找到了模型路径
+                                        except Exception:
+                                            pass
+
+                                if not model_files:
+                                    model_path = None  # 没有模型文件，设为 None
+                                # 检查 snapshots 目录（Hugging Face 缓存结构）
+                                snapshots_dir = os.path.join(model_subdir, "snapshots")
+                                if os.path.exists(snapshots_dir):
+                                    # 遍历 snapshots 下的所有子目录（通常是哈希值命名的目录）
+                                    for snapshot_subdir in os.listdir(snapshots_dir):
+                                        snapshot_path = os.path.join(snapshots_dir, snapshot_subdir)
+                                        if os.path.isdir(snapshot_path):
+                                            # 检查快照目录中是否有模型文件
+                                            snapshot_files = []
+                                            for f in os.listdir(snapshot_path):
+                                                # 检查是否为目录
+                                                item_path = os.path.join(snapshot_path, f)
+                                                if os.path.isdir(item_path):
+                                                    if f.endswith('_data') or f in ['assets', 'vocabulary']:
+                                                        snapshot_files.append(f)
+                                                    continue
+
+                                                # 检查文件扩展名
+                                                if (f.endswith(('.bin', '.safetensors', '.onnx', '.onnx_data')) or
+                                                    f == 'config.json' or   # config.json 是模型配置文件
+                                                    f == 'tokenizer.json' or # tokenizer.json 是分词器文件
+                                                    f == 'preprocessor_config.json' or  # 预处理器配置
+                                                    f == 'generation_config.json' or  # 生成配置
+                                                    f.startswith('model.') or  # model.* 文件
+                                                    f.startswith('vocabulary.') or  # 词汇表文件
+                                                    f.startswith('tokenizer.') or  # 分词器文件
+                                                    f == 'model.onnx' or  # ONNX 模型文件
+                                                    f == 'model.int8.onnx' or  # 量化模型
+                                                    f == 'model.float16.onnx' or  # 半精度模型
+                                                    f == 'model.encoder.onnx' or  # 编码器
+                                                    f == 'model.decoder.onnx'):  # 解码器
+                                                    snapshot_files.append(f)
+
+                                            if snapshot_files:
+                                                model_path = snapshot_path  # 使用快照目录作为模型路径
+                                                break
+
+                                if model_path is None:  # 如果仍未找到模型文件
+                                    model_path = model_subdir  # 返回子目录路径，以便后续验证
+                        else:
+                            model_path = None  # 子目录不存在，设为 None 以使用网络下载
+                else:
+                    model_path = None  # 预定义模型不需要路径
         else:
             # 使用默认模型路径（whisper_model_path）
             if self.whisper_model_path and os.path.exists(self.whisper_model_path):
                 model_path = self.whisper_model_path
-        
+
         return {
             "model_size": model_size,
             "model_path": model_path,

@@ -141,7 +141,7 @@ class BaseController(QObject):
                 send2trash(file_path)
                 deleted_count += 1
                 relative_path = os.path.relpath(file_path, target_dir)
-                self.log(f"✓ 已删除: {relative_path}")
+                self.log(f"🗑️ 已删除: {relative_path}")
             except Exception as e:
                 error_count += 1
                 relative_path = os.path.relpath(file_path, target_dir)
@@ -252,9 +252,11 @@ class TaskController:
 
     def _run_task_in_thread(self):
         """在线程中运行任务"""
+        import os  # 将 import 移到函数开头
         success = False
         try:
-            self.log("--- 任务启动 ---")
+            # 根据任务模式显示不同的启动信息
+            self.log(f"----- {self.task_mode} 任务启动 -----")
             # 执行任务
             success = execute_task(
                 task_mode=self.task_mode,
@@ -278,7 +280,7 @@ class TaskController:
                 # 使用信号在主线程中恢复GUI状态
                 if hasattr(self, 'enable_start_button'):
                     self.enable_start_button.emit(True)
-                
+
                 if hasattr(self.gui, 'ProgressBar'):
                     self.update_progress.emit(0)
             except Exception as e:

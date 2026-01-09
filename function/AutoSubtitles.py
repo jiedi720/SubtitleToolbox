@@ -73,10 +73,9 @@ class SubtitleGenerator:
                 # 模型未缓存，提示用户
                 error_msg = f"未找到本地模型: {self.model_size}\n\n"
                 error_msg += "请按以下步骤手动下载模型：\n"
-                error_msg += "1. 访问模型下载地址: https://huggingface.co/Systran/{model_name}\n".format(model_name=self.model_size)
+                error_msg += "1. 访问模型下载地址: https://github.com/jianchang512/stt/releases/tag/0.0\n".format(model_name=self.model_size)
                 error_msg += "2. 下载模型文件到本地\n"
                 error_msg += "3. 在设置中指定本地模型路径\n\n"
-                error_msg += "或者，在设置中允许程序自动下载模型"
                 raise Exception(error_msg)
         
         # 只使用GPU处理
@@ -97,7 +96,7 @@ class SubtitleGenerator:
             # 如果GPU失败，再尝试CPU
             try:
                 if log_callback:
-                    log_callback(f"GPU初始化失败: {str(e)}，尝试使用CPU...")
+                    log_callback(f"❌ GPU初始化失败: {str(e)}，尝试使用CPU...")
                 self.model = WhisperModel(
                     model_input,
                     device="cpu",
@@ -132,13 +131,14 @@ class SubtitleGenerator:
         else:
             print("DEBUG: cleanup - model 为 None，无需清理")
 
-    def generate_subtitle(self, audio_file, log_callback=None):
+    def generate_subtitle(self, audio_file, log_callback=None, progress_callback=None):
         """
         为单个音频文件生成字幕
-        
+
         Args:
             audio_file: 音频文件路径
             log_callback: 日志回调函数，用于显示日志消息
+            progress_callback: 进度回调函数（可选），用于更新进度条
         """
         if not self.model:
             raise Exception("模型未初始化，请先调用 initialize_model()")
@@ -149,9 +149,6 @@ class SubtitleGenerator:
 
         try:
             # 使用模型生成字幕
-            if log_callback:
-                log_callback("正在分析音频...")
-
             # 调用transcribe，启用语言检测
             # 优化参数以提高处理速度
             segments, info = self.model.transcribe(
@@ -169,8 +166,31 @@ class SubtitleGenerator:
                 # faster-whisper 会自动处理混合语言
             )
 
-# 确保segments被完全处理
-            segments_list = list(segments)
+            # 确保segments被完全处理，并收集所有片段
+            segments_list = []
+            segment_count = 0
+
+            # 输出处理日志
+            if log_callback:
+                log_callback("⌛ 正在处理音频片段...")
+
+            # 遍历segments，收集所有片段
+            # 在遍历过程中更新进度条（处理音频阶段：10%-90%）
+            for segment in segments:
+                segments_list.append(segment)
+                segment_count += 1
+
+                # 每处理 5 个片段更新一次进度条
+                if progress_callback and segment_count % 5 == 0:
+                    # 使用一个启发式方法：假设总共有约100个片段
+                    # 实际上我们不知道总数，但可以给出一个合理的进度显示
+                    # 进度范围：10%-90%
+                    progress_value = 10 + min(segment_count, 80)
+                    progress_callback(progress_value)
+
+            # 遍历完成，将进度条设置为90%（音频处理完成）
+            if progress_callback:
+                progress_callback(90)
 
             # 限制最大片段数量，防止无限迭代
             max_segments = 2000
@@ -179,23 +199,13 @@ class SubtitleGenerator:
                     log_callback(f"⚠️ 警告: 字幕片段数量超过限制 ({len(segments_list)} > {max_segments})，只处理前 {max_segments} 个片段")
                 segments_list = segments_list[:max_segments]
 
-            if log_callback:
-                log_callback("正在提取字幕片段...")
-
             # 检查语言检测信息
             detected_language = None
+            probability = 0.0
             if hasattr(info, 'language') and info.language:
                 detected_language = info.language
                 probability = getattr(info, 'language_probability', 0.0)
-                if log_callback:
-                    log_callback(f"检测到语言: {detected_language} (置信度: {probability:.2f})")
-            else:
-                if log_callback:
-                    log_callback("语言检测信息不可用")
-            
-            if log_callback:
-                log_callback(f"找到 {len(segments_list)} 个片段")
-            
+
             # 语言代码映射
             language_map = {
                 'ko': 'kor',  # 韩语
@@ -204,19 +214,49 @@ class SubtitleGenerator:
                 'en': 'eng',  # 英语
             }
 
+            # 构建语言日志信息
+            language_log_parts = []
+
+            # 添加检测语言信息
+            language_name_map = {
+                'ko': '韩语',
+                'ja': '日语',
+                'zh': '中文',
+                'en': '英语',
+                'auto': '自动'
+            }
+
+            if detected_language:
+                detected_name = language_name_map.get(detected_language, detected_language)
+                confidence_percent = probability * 100
+                language_log_parts.append(f"检测语言: {detected_name} (可靠度: {confidence_percent:.1f}%)")
+            else:
+                language_log_parts.append("检测语言: 未知")
+
+            # 添加指定语言信息
+            if self.language:
+                specified_name = language_name_map.get(self.language, self.language)
+                language_log_parts.append(f"使用指定语言: {specified_name}")
+            else:
+                language_log_parts.append("使用指定语言: 自动")
+
+            # 输出合并的语言日志
+            if log_callback:
+                log_callback(f"🔤 {' / '.join(language_log_parts)}")
+
             # 确定最终使用的语言代码
             # 如果指定了语言，直接使用指定的语言
             # 如果没有指定语言（None），使用 Whisper 自动检测的语言
+            final_language = None
             if self.language:
                 # 用户指定了语言，直接使用
                 final_language = self.language
-                if log_callback:
-                    log_callback(f"使用指定语言: {self.language}")
             else:
                 # 自动检测模式，使用 Whisper 检测到的语言
                 final_language = detected_language
-                if log_callback:
-                    log_callback(f"自动检测语言: {detected_language if detected_language else '未知'}")
+
+            if log_callback:
+                log_callback(f"📌 共处理了 {len(segments_list)} 个片段")
 
             # 如果检测到语言，添加语言后缀
             if final_language and final_language in language_map:
@@ -227,34 +267,41 @@ class SubtitleGenerator:
                 output_file = f"{base_name}.whisper.[none].srt"
 
             # 写入字幕文件
-            self._write_subtitle(output_file, segments_list, log_callback)
+            self._write_subtitle(output_file, segments_list, log_callback, progress_callback)
 
             if log_callback:
-                log_callback(f"字幕文件写入完成: {os.path.basename(output_file)}")
+                log_callback(f"✔️ 字幕文件写入完成: {os.path.basename(output_file)}")
 
             return output_file
 
         except Exception as e:
             if log_callback:
-                log_callback(f"字幕生成失败: {str(e)}")
+                log_callback(f"❌ 字幕生成失败: {str(e)}")
             raise
     
-    def _write_subtitle(self, output_file, segments, log_callback=None):
+    def _write_subtitle(self, output_file, segments, log_callback=None, progress_callback=None):
         """
         写入字幕文件
-        
+
         Args:
             output_file: 输出文件路径
             segments: 字幕片段列表
             log_callback: 日志回调函数，用于显示日志消息
+            progress_callback: 进度回调函数（可选），用于更新进度条
         """
         try:
             if log_callback:
-                log_callback(f"正在写入字幕文件: {os.path.basename(output_file)}")
-            
+                log_callback(f"⌛ 正在写入字幕文件: {os.path.basename(output_file)}")
+
             # 使用缓冲写入，避免卡死
             content_lines = []
+            total_segments = len(segments)
+
             for i, segment in enumerate(segments, 1):
+                # 更新进度条（从 90% 到 100%）
+                if progress_callback and total_segments > 0:
+                    progress_value = int(90 + i / total_segments * 10)
+                    progress_callback(progress_value)
                 
                 start_time = segment.start
                 end_time = segment.end
@@ -276,7 +323,7 @@ class SubtitleGenerator:
                 f.writelines(content_lines)
         except Exception as e:
             if log_callback:
-                log_callback(f"写入字幕文件失败: {str(e)}")
+                log_callback(f"❌ 写入字幕文件失败: {str(e)}")
             raise
     
     def batch_process(self, input_dir, progress_callback=None, log_callback=None, skip_existing=True):
@@ -302,7 +349,7 @@ class SubtitleGenerator:
 
             if not mp3_files:
                 if log_callback:
-                    log_callback("错误: 未找到MP3文件")
+                    log_callback("❌ 错误: 未找到MP3文件")
                 return []
             
             if log_callback:
@@ -312,7 +359,9 @@ class SubtitleGenerator:
             existing_files = []
             new_files = []
 
-            for mp3_file in mp3_files:
+            # 识别文件字幕阶段（0%-10%）
+            total_mp3_count = len(mp3_files)
+            for mp3_idx, mp3_file in enumerate(mp3_files):
                 base_name = os.path.splitext(os.path.basename(mp3_file))[0]
                 dir_name = os.path.dirname(mp3_file)
 
@@ -328,11 +377,16 @@ class SubtitleGenerator:
                 else:
                     new_files.append(mp3_file)
 
+                # 更新识别文件字幕阶段的进度（0%-10%）
+                if progress_callback:
+                    progress_value = int((mp3_idx + 1) / total_mp3_count * 10)
+                    progress_callback(progress_value)
+
             if log_callback:
                 if new_files:
                     log_callback(f"未生成字幕: {len(new_files)} 个")
                 if existing_files:
-                    log_callback(f"已生成字幕: {len(existing_files)} 个")
+                    log_callback(f"检测到 {len(existing_files)} 个文件已生成字幕，将跳过这 {len(existing_files)} 个文件")
 
             # 优先处理未生成的文件
             results = []
@@ -342,11 +396,6 @@ class SubtitleGenerator:
             for idx, mp3_file in enumerate(all_files):
                 base_name = os.path.splitext(os.path.basename(mp3_file))[0]
                 dir_name = os.path.dirname(mp3_file)
-
-                # 更新进度条
-                if progress_callback:
-                    progress_value = int((idx + 1) / len(all_files) * 100)
-                    progress_callback(progress_value)
 
                 # 检查是否已存在字幕
                 has_subtitle = False
@@ -362,13 +411,32 @@ class SubtitleGenerator:
                     results.append((mp3_file, existing_subtitle, True))
                     if log_callback:
                         log_callback(f"⏭️ 跳过: {os.path.basename(mp3_file)} (已存在字幕)")
+                    # 更新进度条到当前文件的完成位置
+                    if progress_callback:
+                        progress_value = int((idx + 1) / total_files * 100)
+                        progress_callback(progress_value)
                     continue
 
                 if log_callback:
                     log_callback(f"\n正在处理: {os.path.basename(mp3_file)} ({idx+1}/{total_files})")
 
+                # 为当前文件创建一个包装后的 progress_callback
+                def create_file_progress_callback(file_idx, file_total):
+                    def wrapped_progress_callback(segment_progress):
+                        # 计算当前文件在总进度中的位置
+                        file_start = file_idx / file_total * 100
+                        file_end = (file_idx + 1) / file_total * 100
+                        file_range = file_end - file_start
+
+                        # 计算实际进度
+                        actual_progress = int(file_start + segment_progress / 100 * file_range)
+                        progress_callback(actual_progress)
+                    return wrapped_progress_callback
+
+                file_progress_callback = create_file_progress_callback(idx, total_files)
+
                 try:
-                    output_file = self.generate_subtitle(mp3_file, log_callback)
+                    output_file = self.generate_subtitle(mp3_file, log_callback, file_progress_callback)
                     results.append((mp3_file, output_file, True))
 
                     if log_callback:
@@ -381,15 +449,9 @@ class SubtitleGenerator:
                     continue
 
             # 确保所有处理完成后再返回结果
-            if log_callback:
-                success_count = sum(1 for _, _, success in results if success)
-                fail_count = len(results) - success_count
-
-                log_callback(f"✅ 批处理完成: 总计 {len(results)}, 成功 {success_count}, 失败 {fail_count}")
-
             return results
 
         except Exception as e:
             if log_callback:
-                log_callback(f"批处理过程中发生错误: {str(e)}")
+                log_callback(f"❌ 批处理过程中发生错误: {str(e)}")
             raise

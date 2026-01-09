@@ -603,12 +603,35 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         from PySide6.QtWidgets import QFileDialog
 
         # 获取当前设置的目录作为默认路径
+        # 优先使用控制器中的模型路径（已从配置文件加载）
         default_dir = ""
         if hasattr(self.app, 'whisper_model_path') and self.app.whisper_model_path:
-            default_dir = self.app.whisper_model_path
+            # 检查路径是否存在，如果不存在则使用其父目录
+            model_path = self.app.whisper_model_path
+            if os.path.exists(model_path):
+                default_dir = model_path
+            else:
+                # 如果路径不存在，尝试使用其父目录
+                parent_dir = os.path.dirname(model_path)
+                if os.path.exists(parent_dir):
+                    default_dir = parent_dir
+                else:
+                    # 如果父目录也不存在，尝试使用用户 AppData 目录作为更通用的默认位置
+                    # 如果这些都不存在，最后使用源目录下的 models 文件夹
+                    appdata_path = os.path.expanduser("~/AppData/Roaming")
+                    if os.path.exists(appdata_path):
+                        default_dir = appdata_path
+                    elif hasattr(self.app, 'path_var') and self.app.path_var:
+                        default_dir = os.path.join(self.app.path_var.strip(), "models")
+                    else:
+                        # 如果都没有，使用当前工作目录
+                        default_dir = os.getcwd()
         elif hasattr(self.app, 'path_var') and self.app.path_var:
             # 如果没有设置过，使用源目录下的 models 文件夹
             default_dir = os.path.join(self.app.path_var.strip(), "models")
+        else:
+            # 如果都没有，使用当前工作目录
+            default_dir = os.getcwd()
 
         # 弹出目录选择对话框
         dir_path = QFileDialog.getExistingDirectory(self, "选择 Whisper 模型目录", default_dir)
@@ -616,15 +639,63 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
             # 标准化路径分隔符
             normalized_dir_path = os.path.normpath(dir_path)
 
-            # 检测目录中的模型
+            # 检查是否是 Hugging Face 缓存目录结构（包含 blobs, refs, snapshots）
+            dir_items = []
+            try:
+                dir_items = os.listdir(normalized_dir_path)
+            except Exception as e:
+                self.log(f"❌ 无法读取目录: {e}")
+                return
+
+            hf_cache_dirs = ['blobs', 'refs', 'snapshots']
+            is_hf_cache = all(item in dir_items for item in hf_cache_dirs)
+
+            if is_hf_cache:
+                # 这是 Hugging Face 缓存目录，自动定位到 snapshots 目录下的实际模型目录
+                snapshots_dir = os.path.join(normalized_dir_path, "snapshots")
+                if os.path.exists(snapshots_dir):
+                    # 获取 snapshots 下的第一个子目录（通常是哈希值）
+                    try:
+                        snapshot_items = os.listdir(snapshots_dir)
+                        snapshot_dirs = [item for item in snapshot_items
+                                       if os.path.isdir(os.path.join(snapshots_dir, item))]
+                        if snapshot_dirs:
+                            # 使用第一个 snapshot 目录
+                            actual_model_dir = os.path.join(snapshots_dir, snapshot_dirs[0])
+                            normalized_dir_path = actual_model_dir
+                            self.log(f"✓ 检测到 Hugging Face 缓存目录，自动定位到模型目录")
+                            self.log(f"📂 实际模型目录: {normalized_dir_path}")
+
+                            # 直接使用该目录，不再检测子目录
+                            self.app.whisper_model_path = normalized_dir_path
+                            # 从原始路径中提取模型名称
+                            original_dir_name = os.path.basename(dir_path)
+                            self.app.whisper_model = original_dir_name
+                            self.log(f"✓ 已选择 Whisper 模型目录: {normalized_dir_path}")
+                            self.log(f"🔍 模型名称: {original_dir_name}")
+                            return
+                        else:
+                            self.log(f"❌ snapshots 目录为空: {snapshots_dir}")
+                            return
+                    except Exception as e:
+                        self.log(f"❌ 读取 snapshots 目录时出错: {e}")
+                        return
+                else:
+                    self.log(f"❌ 未找到 snapshots 目录: {snapshots_dir}")
+                    return
+
+            # 检测目录中的模型（根据文件夹名称）
             model_dirs = []
             for item in os.listdir(normalized_dir_path):
                 item_path = os.path.join(normalized_dir_path, item)
                 if os.path.isdir(item_path):
-                    # 检查目录中是否包含模型文件
-                    model_files = [f for f in os.listdir(item_path)
-                                 if f.endswith(('.bin', '.safetensors', '.onnx', '.onnx_data'))]
-                    if model_files:
+                    # 检查文件夹名称是否包含常见的模型关键词
+                    item_lower = item.lower()
+                    if any(keyword in item_lower for keyword in [
+                        'large', 'medium', 'small', 'tiny', 'base',
+                        'distil', 'turbo', 'v1', 'v2', 'v3', 'model',
+                        'whisper', 'faster', 'large-v', 'medium-v', 'small-v'
+                    ]):
                         model_dirs.append(item)
 
             # 根据检测结果输出日志
@@ -634,45 +705,99 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
 
                 if len(model_dirs) == 1:
                     # 如果只检测到一个模型，假设用户选择了具体模型目录
+                    self.app.whisper_model = model_dirs[0]
                     self.log(f"🔍 检测到模型: {model_dirs[0]}")
                 else:
                     # 如果检测到多个模型，说明用户选择了模型主目录
+                    # 自动选择第一个模型
+                    self.app.whisper_model = model_dirs[0]
                     self.log(f"🔍 检测到 {len(model_dirs)} 个模型: {', '.join(model_dirs)}")
+                    self.log(f"✓ 自动选择第一个模型: {model_dirs[0]}")
             else:
-                # 检查当前目录是否包含模型文件（用户可能选择了具体模型目录）
-                current_model_files = [f for f in os.listdir(normalized_dir_path)
-                                     if f.endswith(('.bin', '.safetensors', '.onnx', '.onnx_data'))]
-                if current_model_files:
+                # 检查当前目录名称是否包含模型关键词（用户可能选择了具体模型目录）
+                current_dir_name = os.path.basename(normalized_dir_path)
+                current_dir_lower = current_dir_name.lower()
+
+                if any(keyword in current_dir_lower for keyword in [
+                    'large', 'medium', 'small', 'tiny', 'base',
+                    'distil', 'turbo', 'v1', 'v2', 'v3', 'model',
+                    'whisper', 'faster', 'large-v', 'medium-v', 'small-v'
+                ]):
                     # 用户选择了具体模型目录
-                    parent_dir_name = os.path.basename(normalized_dir_path)
                     self.app.whisper_model_path = normalized_dir_path
+                    # 自动设置 whisper_model 为目录名称
+                    self.app.whisper_model = current_dir_name
                     self.log(f"已选择 Whisper 模型目录: {normalized_dir_path}")
-                    self.log(f"🔍 检测到模型: {parent_dir_name}")
+                    self.log(f"🔍 检测到模型: {current_dir_name}")
                 else:
                     # 没有检测到任何模型
-                    self.log(f"❌ 选择的目录中未检测到任何模型文件 (.bin/.safetensors/.onnx/.onnx_data): {normalized_dir_path}")
+                    self.log(f"❌ 选择的目录中未检测到任何模型: {normalized_dir_path}")
                     # 仍然保存路径，但给出警告
                     self.app.whisper_model_path = normalized_dir_path
     
     def _on_whisper_model_changed(self, value):
         """
         Whisper 模型选择变化时的处理
-        
+
         Args:
             value: 模型索引
         """
+        import os
+
         # 获取当前选中的模型名称
         model_name = self.WhisperModelSelect.currentText()
-        
+
         # 更新控制器的模型设置
         if hasattr(self.app, 'whisper_model'):
             self.app.whisper_model = model_name
-        
-        # 记录日志
-        if model_name != "默认":
-            self.log(f"✓ 已切换 Whisper 模型: {model_name}")
+
+        # 验证模型是否存在
+        if model_name.startswith("本地: "):
+            local_model_name = model_name.replace("本地: ", "")
+            model_dir = os.path.join(self.app.path_var.strip(), "models", local_model_name)
+
+            # 检查模型目录是否存在
+            if os.path.exists(model_dir):
+                # 检查目录中是否有模型文件
+                model_files = [f for f in os.listdir(model_dir)
+                             if f.endswith(('.bin', '.safetensors', '.onnx', '.onnx_data')) or
+                                f == 'config.json' or f == 'tokenizer.json' or
+                                f.startswith('model.')]
+
+                if model_files:
+                    self.log(f"✓ 已切换 Whisper 模型: {model_name}")
+                    self.log(f"🔍 检测到模型文件: {len(model_files)} 个")
+                else:
+                    self.log(f"❌ 选中的模型目录中未检测到模型文件: {model_dir}")
+            else:
+                self.log(f"❌ 选中的模型目录不存在: {model_dir}")
         else:
-            self.log(f"✓ 已切换为默认模型")
+            # 对预定义模型也进行验证
+            if model_name != "默认":
+                # 检查用户设置的模型路径中是否存在对应模型
+                if hasattr(self.app, 'whisper_model_path') and self.app.whisper_model_path:
+                    model_path = self.app.whisper_model_path
+                    # 检查模型路径下是否有与模型名称匹配的子目录
+                    model_subdir = os.path.join(model_path, model_name)
+
+                    if os.path.exists(model_subdir):
+                        self.app.whisper_model = model_name  # 确保模型被设置
+                        self.log(f"✓ 已切换 Whisper 模型: {model_name}")
+                    else:
+                        # 检查模型路径本身是否存在
+                        if os.path.exists(model_path):
+                            self.log(f"❌ 本地未找到模型: {model_subdir}")
+                        else:
+                            # 模型路径不存在
+                            self.log(f"❌ 模型路径不存在: {model_path}")
+                else:
+                    # 没有设置模型路径
+                    self.log(f"❌ 未设置模型路径")
+
+                # 总是设置模型，但只在找到本地模型时显示成功信息
+                self.app.whisper_model = model_name
+            else:
+                self.log(f"✓ 已切换为默认模型")
 
     def _on_whisper_language_changed(self, value):
         """

@@ -200,14 +200,10 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
 
                 skip_existing = True
                 if existing_files:
-                    log_callback(f"检测到 {len(existing_files)} 个文件已生成字幕")
                     # 暂时跳过对话框，直接跳过已存在的文件
                     skip_existing = True
-                    log_callback(f"将跳过 {len(existing_files)} 个已存在的字幕文件")
 
-                if skip_existing:
-                    log_callback(f"将跳过 {len(existing_files)} 个已存在的字幕文件")
-                else:
+                if not skip_existing:
                     log_callback(f"将覆盖 {len(existing_files)} 个已存在的字幕文件")
 
                 # 批量处理
@@ -223,8 +219,6 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
                 fail_count = len(results) - success_count
 
                 log_callback(f"✅ 处理完成: 成功 {success_count} 个，失败 {fail_count} 个")
-
-                log_callback("--- AutoSub任务完成 ---")
 
             except Exception as e:
                 log_callback(f"❌ AutoSub模式处理失败: {e}")
