@@ -435,7 +435,8 @@ class UnifiedApp(BaseController, UIController, TaskController, ToolController):
             self.gui.VolumeLabel,
             self.gui.AssPatternLabel,
             self.gui.WhisperModelLabel,
-            self.gui.WhisperLanguageLabel
+            self.gui.WhisperLanguageLabel,
+            self.gui.WhisperEngineLabel
         ]
 
         for label in label_widgets:

@@ -1,28 +1,8 @@
 import os
 import sys
 
-# 在导入 faster_whisper 之前设置 DLL 搜索路径
-if getattr(sys, 'frozen', False):
-    # 打包后的程序
-    base_dir = os.path.dirname(sys.executable)
-    cuda_base = os.path.join(os.path.dirname(base_dir), 'Faster_Whisper_Model')
-else:
-    # 开发环境
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    cuda_base = os.path.join(os.path.dirname(base_dir), 'Faster_Whisper_Model')
-
-cuda_paths = [
-    os.path.join(cuda_base, 'nvidia', 'cublas', 'bin'),
-    os.path.join(cuda_base, 'nvidia', 'cudnn', 'bin'),
-    os.path.join(cuda_base, 'nvidia', 'cuda_runtime', 'bin'),
-]
-
-for cuda_path in cuda_paths:
-    if os.path.exists(cuda_path):
-        try:
-            os.add_dll_directory(cuda_path)
-        except AttributeError:
-            pass
+# 仅在需要时从配置文件读取 CUDA 路径
+# 实际的 CUDA 路径检查将在 initialize_model 方法中进行
 
 
 class SubtitleGenerator:
@@ -135,25 +115,64 @@ class SubtitleGenerator:
                 error_msg += "3. 在设置中指定本地模型路径\n\n"
                 raise Exception(error_msg)
         
-        # 只使用GPU处理
-        try:
-            # 优先使用GPU进行处理
-            self.model = WhisperModel(
-                model_input,
-                device="cuda",
-                compute_type="float16",
-                num_workers=1,  # 使用 1 个工作线程，避免 GPU 内存问题
-                device_index=0  # 使用第一个 GPU
-            )
-
-            if log_callback:
-                log_callback("✓ 使用 GPU (CUDA) 进行处理")
-
-        except Exception as e:
-            # 如果GPU失败，再尝试CPU
+        # 从配置文件读取引擎选择
+        from function.settings import ConfigManager
+        config_manager = ConfigManager()
+        config_manager.load_settings()
+        engine_type = config_manager.whisper_engine
+        
+        # 如果引擎选择为GPU，直接尝试使用GPU处理
+        if engine_type == "GPU":
             try:
+                # 添加CUDA路径（如果配置了）
+                cuda_path = config_manager.cuda_library_path
+                if cuda_path and os.path.exists(cuda_path):
+                    # 添加所有子目录的bin文件夹到DLL搜索路径
+                    for item in os.listdir(cuda_path):
+                        item_path = os.path.join(cuda_path, item)
+                        if os.path.isdir(item_path):
+                            bin_path = os.path.join(item_path, 'bin')
+                            if os.path.exists(bin_path):
+                                # 1. 针对 Python 3.8+ 的 DLL 安全加载机制
+                                try:
+                                    os.add_dll_directory(bin_path)
+                                except AttributeError:
+                                    # Windows 7 或更早版本不支持 add_dll_directory
+                                    pass
+                                
+                                # 2. 针对传统的系统 PATH
+                                current_path = os.environ.get('PATH', '')
+                                if bin_path not in current_path:
+                                    os.environ['PATH'] = bin_path + os.pathsep + current_path
+                
+                # 直接尝试使用GPU进行处理
+                self.model = WhisperModel(
+                    model_input,
+                    device="cuda",
+                    compute_type="float16",
+                    num_workers=1,  # 使用 1 个工作线程，避免 GPU 内存问题
+                    device_index=0  # 使用第一个 GPU
+                )
                 if log_callback:
-                    log_callback(f"❌ GPU初始化失败: {str(e)}，尝试使用CPU...")
+                    log_callback("✓ 使用 GPU (CUDA) 进行处理")
+            except Exception as e:
+                # 处理特定的CUDA库错误
+                error_str = str(e)
+                if "cublas64_12.dll" in error_str:
+                    # 合并为更友好的错误提示
+                    error_msg = "❌ 未设置 CUDA 路径 (cublas64_12.dll)"
+                else:
+                    # 其他GPU错误保持原样
+                    error_msg = f"❌ GPU模式处理失败: {error_str}"
+                
+                # 只抛出异常，不使用log_callback，避免重复记录
+                # 错误信息会由调用方统一处理
+                raise Exception(error_msg)
+        else:
+            # 引擎选择为CPU，直接使用CPU模式
+            if log_callback:
+                log_callback(f"ⓘ 已选择CPU模式，使用 CPU 进行处理")
+            try:
                 self.model = WhisperModel(
                     model_input,
                     device="cpu",
@@ -161,13 +180,10 @@ class SubtitleGenerator:
                     num_workers=1,
                     cpu_threads=4  # 限制CPU线程数
                 )
-
+            except Exception as e:
                 if log_callback:
-                    log_callback("✓ 使用 CPU 进行处理")
-            except Exception as cpu_e:
-                if log_callback:
-                    log_callback(f"CPU初始化也失败: {str(cpu_e)}")
-                raise Exception(f"模型初始化失败:\nGPU模式: {str(e)}\nCPU模式: {str(cpu_e)}\n请确保：\n1. 已安装 NVIDIA 驱动\n2. 已安装 CUDA Toolkit\n3. 已安装 cuDNN\n4. GPU 可用\n\n或者确保系统支持CPU处理")
+                    log_callback(f"❌ CPU初始化失败: {str(e)}")
+                raise Exception(f"模型初始化失败:\nCPU模式: {str(e)}\n请确保系统支持CPU处理")
         
         if self.model is None:
             raise Exception("模型初始化失败: model is None")
@@ -331,9 +347,16 @@ class SubtitleGenerator:
             return output_file
 
         except Exception as e:
-            if log_callback:
-                log_callback(f"❌ 字幕生成失败: {str(e)}")
-            raise
+            error_str = str(e)
+            if "cublas64_12.dll" in error_str:
+                # 直接抛出异常，不显示错误信息，由上层统一处理
+                raise Exception("❌ 未设置 CUDA 路径 (cublas64_12.dll)")
+            else:
+                # 其他错误保持原样
+                error_msg = f"❌ 字幕生成失败: {error_str}"
+                if log_callback:
+                    log_callback(error_msg)
+                raise Exception(error_msg)
     
     def _write_subtitle(self, output_file, segments, log_callback=None, progress_callback=None):
         """
@@ -516,11 +539,18 @@ class SubtitleGenerator:
                     if log_callback:
                         log_callback(f"✅ 已生成: {os.path.basename(output_file)}")
                 except Exception as e:
-                    results.append((media_file, None, False))
-                    if log_callback:
-                        log_callback(f"❌ 处理失败: {str(e)}")
-                    # 继续处理下一个文件
-                    continue
+                    error_str = str(e)
+                    if "❌ 未设置 CUDA 路径 (cublas64_12.dll)" in error_str:
+                        # 直接抛出异常，不显示错误信息，由上层统一处理
+                        raise e
+                    else:
+                        # 其他非致命错误，记录并继续处理下一个文件
+                        results.append((media_file, None, False))
+                        error_msg = f"❌ 处理失败: {error_str}"
+                        if log_callback:
+                            log_callback(error_msg)
+                        # 继续处理下一个文件
+                        continue
 
             # 确保所有处理完成后再返回结果
             # 多个文件时，重置进度条
@@ -530,6 +560,12 @@ class SubtitleGenerator:
             return results
 
         except Exception as e:
-            if log_callback:
-                log_callback(f"❌ 批处理过程中发生错误: {str(e)}")
-            raise
+            error_str = str(e)
+            if "❌ 未设置 CUDA 路径 (cublas64_12.dll)" in error_str:
+                # 直接抛出异常，不显示错误信息，由上层统一处理
+                raise e
+            else:
+                # 其他批处理错误保持原样
+                if log_callback:
+                    log_callback(f"❌ 批处理过程中发生错误: {str(e)}")
+                raise

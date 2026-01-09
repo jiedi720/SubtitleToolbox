@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'SubtitleToolboxVzJVkb.ui'
+## Form generated from reading UI file 'SubtitleToolboxYphipw.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.10.1
 ##
@@ -1022,13 +1022,16 @@ class Ui_SubtitleToolbox(object):
         self.Function.addTab(self.Srt2Ass, "")
         self.AutoSub = QWidget()
         self.AutoSub.setObjectName(u"AutoSub")
-        self.verticalLayout_3 = QVBoxLayout(self.AutoSub)
-        self.verticalLayout_3.setObjectName(u"verticalLayout_3")
+        self.verticalLayout_8 = QVBoxLayout(self.AutoSub)
+        self.verticalLayout_8.setObjectName(u"verticalLayout_8")
         self.gridLayout = QGridLayout()
         self.gridLayout.setObjectName(u"gridLayout")
-        self.gridLayout.setHorizontalSpacing(7)
-        self.gridLayout.setVerticalSpacing(5)
-        self.gridLayout.setContentsMargins(-1, -1, 5, -1)
+        self.verticalLayout_3 = QVBoxLayout()
+        self.verticalLayout_3.setObjectName(u"verticalLayout_3")
+        self.horizontalLayout_8 = QHBoxLayout()
+        self.horizontalLayout_8.setSpacing(10)
+        self.horizontalLayout_8.setObjectName(u"horizontalLayout_8")
+        self.horizontalLayout_8.setContentsMargins(10, -1, -1, -1)
         self.WhisperModelLabel = QLabel(self.AutoSub)
         self.WhisperModelLabel.setObjectName(u"WhisperModelLabel")
         sizePolicy.setHeightForWidth(self.WhisperModelLabel.sizePolicy().hasHeightForWidth())
@@ -1042,7 +1045,43 @@ class Ui_SubtitleToolbox(object):
         self.WhisperModelLabel.setTextFormat(Qt.TextFormat.PlainText)
         self.WhisperModelLabel.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
-        self.gridLayout.addWidget(self.WhisperModelLabel, 0, 0, 1, 1, Qt.AlignmentFlag.AlignRight)
+        self.horizontalLayout_8.addWidget(self.WhisperModelLabel)
+
+        self.SelectWhisperModel = QPushButton(self.AutoSub)
+        self.SelectWhisperModel.setObjectName(u"SelectWhisperModel")
+        self.SelectWhisperModel.setMinimumSize(QSize(30, 30))
+        self.SelectWhisperModel.setMaximumSize(QSize(30, 30))
+        self.SelectWhisperModel.setStyleSheet(u"/* \u6309\u94ae\u9ed8\u8ba4\u6837\u5f0f */\n"
+"QPushButton {\n"
+"    color: white;\n"
+"    border-radius: 8px;\n"
+"    border: 1px solid #bfc1c8; \n"
+"}\n"
+"\n"
+"/* \u60ac\u6d6e\u7279\u6548 */\n"
+"QPushButton[theme=\"light\"]:hover {\n"
+"    background-color: #a0a0a0; /* \u989c\u8272\u6bd4\u9ed8\u8ba4\u7a0d\u4eae */\n"
+"}\n"
+"\n"
+"QPushButton[theme=\"dark\"]:hover {\n"
+"    background-color: #DEDEDE;  /* \u989c\u8272\u6bd4\u9ed8\u8ba4\u7a0d\u4eae */\n"
+"}\n"
+"\n"
+"QPushButton:pressed {\n"
+"    /* 1. \u5411\u4e0b\u63a8\u6587\u5b57 */\n"
+"    padding-top: 4px; \n"
+"    /* 2. \u540c\u65f6\u51cf\u5c11\u5e95\u90e8\uff0c\u786e\u4fdd\u5185\u90e8\u6709\u6548\u7a7a\u95f4\u9ad8\u5ea6\u4e0d\u53d8 */\n"
+"    padding-bottom: 0px; \n"
+"    /* 3. \u5f3a\u5236\u5185\u5bb9\u6c34\u5e73\u5782\u76f4\u5c45\u4e2d\uff0c\u9632\u6b62\u5bf9\u9f50\u65b9\u5f0f\u5e72\u6270 */\n"
+"    text-align: center;\n"
+"}")
+        self.SelectWhisperModel.setIcon(icon4)
+        self.SelectWhisperModel.setIconSize(QSize(20, 20))
+
+        self.horizontalLayout_8.addWidget(self.SelectWhisperModel, 0, Qt.AlignmentFlag.AlignLeft)
+
+
+        self.verticalLayout_3.addLayout(self.horizontalLayout_8)
 
         self.WhisperModelSelect = QComboBox(self.AutoSub)
         self.WhisperModelSelect.addItem("")
@@ -1104,41 +1143,96 @@ class Ui_SubtitleToolbox(object):
 "}")
         self.WhisperModelSelect.setEditable(False)
 
-        self.gridLayout.addWidget(self.WhisperModelSelect, 0, 1, 1, 1)
+        self.verticalLayout_3.addWidget(self.WhisperModelSelect)
 
-        self.SelectWhisperModel = QPushButton(self.AutoSub)
-        self.SelectWhisperModel.setObjectName(u"SelectWhisperModel")
-        self.SelectWhisperModel.setMinimumSize(QSize(35, 35))
-        self.SelectWhisperModel.setMaximumSize(QSize(35, 35))
-        self.SelectWhisperModel.setStyleSheet(u"/* \u6309\u94ae\u9ed8\u8ba4\u6837\u5f0f */\n"
-"QPushButton {\n"
+
+        self.gridLayout.addLayout(self.verticalLayout_3, 0, 0, 2, 1)
+
+        self.horizontalLayout_9 = QHBoxLayout()
+        self.horizontalLayout_9.setSpacing(10)
+        self.horizontalLayout_9.setObjectName(u"horizontalLayout_9")
+        self.WhisperEngineLabel = QLabel(self.AutoSub)
+        self.WhisperEngineLabel.setObjectName(u"WhisperEngineLabel")
+        sizePolicy.setHeightForWidth(self.WhisperEngineLabel.sizePolicy().hasHeightForWidth())
+        self.WhisperEngineLabel.setSizePolicy(sizePolicy)
+        self.WhisperEngineLabel.setMinimumSize(QSize(0, 30))
+        self.WhisperEngineLabel.setMaximumSize(QSize(16777215, 30))
+        self.WhisperEngineLabel.setFont(font10)
+        self.WhisperEngineLabel.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
+        self.WhisperEngineLabel.setStyleSheet(u"color: rgb(0, 0, 0);")
+        self.WhisperEngineLabel.setFrameShape(QFrame.Shape.NoFrame)
+        self.WhisperEngineLabel.setTextFormat(Qt.TextFormat.PlainText)
+        self.WhisperEngineLabel.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
+
+        self.horizontalLayout_9.addWidget(self.WhisperEngineLabel)
+
+        self.WhisperEngineSelect = QComboBox(self.AutoSub)
+        self.WhisperEngineSelect.addItem("")
+        self.WhisperEngineSelect.addItem("")
+        self.WhisperEngineSelect.setObjectName(u"WhisperEngineSelect")
+        sizePolicy.setHeightForWidth(self.WhisperEngineSelect.sizePolicy().hasHeightForWidth())
+        self.WhisperEngineSelect.setSizePolicy(sizePolicy)
+        self.WhisperEngineSelect.setMinimumSize(QSize(50, 30))
+        self.WhisperEngineSelect.setMaximumSize(QSize(50, 30))
+        self.WhisperEngineSelect.setFont(font11)
+        self.WhisperEngineSelect.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.WhisperEngineSelect.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
+        self.WhisperEngineSelect.setStyleSheet(u"/* 1. \u4e0b\u62c9\u6846\u4e3b\u4f53\uff08\u4fdd\u6301\u4f60\u539f\u6765\u7684\uff09 */\n"
+"QComboBox {\n"
+"    color: #333333;\n"
+"    background-color: #F2F2F2;        \n"
+"    border: 1px solid #B5B5B5;\n"
 "    border-radius: 9px;\n"
-"    border: 1px solid #b4b7bc;     \n"
+"    padding: 1px 10px;\n"
 "}\n"
 "\n"
-"/* \u60ac\u6d6e\u7279\u6548\uff1a\u80cc\u666f\u989c\u8272\u53d8\u6d45\uff0c\u5e76\u589e\u52a0\u84dd\u8272\u8fb9\u6846\u611f */\n"
-"QPushButton[theme=\"light\"]:hover {\n"
-"    background-color: #a0a0a0; /* \u989c\u8272\u6bd4\u9ed8\u8ba4\u7a0d\u4eae */\n"
+"/* \u60ac\u6d6e\u4e0e\u6fc0\u6d3b\u72b6\u6001 */\n"
+"QComboBox:hover {\n"
+"    border: 2px solid #7953B1;       \n"
 "}\n"
 "\n"
-"QPushButton[theme=\"dark\"]:hover {\n"
-"    background-color: #DEDEDE;  /* \u989c\u8272\u6bd4\u9ed8\u8ba4\u7a0d\u4eae */\n"
+"/* 2. \u4e0b\u62c9\u5217\u8868\u5bb9\u5668 */\n"
+"QComboBox QAbstractItemView {\n"
+"    border: 1px solid #7953B1;\n"
+"    border-radius: 9px;\n"
+"    background-color: #F2F2F2;\n"
+"    outline: 0px;  /* \u79fb\u9664\u865a\u7ebf\u6846 */\n"
 "}\n"
 "\n"
+"/* 3. \u6bcf\u4e00\u4e2a\u9009\u9879\u7684\u6837\u5f0f */\n"
+"QComboBox QAbstractItemView::item {\n"
+"    color: black;\n"
+"    height: 30px; /* \u589e\u52a0\u9ad8\u5ea6\uff0c\u5706\u89d2\u624d\u597d\u770b */\n"
+"    padding-left: 10px;\n"
+"}\n"
 "\n"
-"QPushButton:pressed {\n"
-"    /* 1. \u5411\u4e0b\u63a8\u6587\u5b57 */\n"
-"    padding-top: 3px; \n"
-"    /* 2. \u540c\u65f6\u51cf\u5c11\u5e95\u90e8\uff0c\u786e\u4fdd\u5185\u90e8\u6709\u6548\u7a7a\u95f4\u9ad8\u5ea6\u4e0d\u53d8 */\n"
-"    padding-bottom: 0px; \n"
-"    /* 3. \u5f3a\u5236\u5185\u5bb9\u6c34\u5e73\u5782\u76f4\u5c45\u4e2d\uff0c\u9632\u6b62\u5bf9\u9f50\u65b9\u5f0f\u5e72\u6270 */\n"
-"    text-align: center;\n"
+"/* 4. \u9009\u4e2d\u9879\u7684\u6837\u5f0f */\n"
+"QComboBox QAbstractItemView::item:selected {\n"
+"    background-co"
+                        "lor: #7953B1;\n"
+"    color: white;\n"
+"    /* \u5982\u679c\u60f3\u8ba9\u9009\u4e2d\u7684\u9ad8\u4eae\u5757\u4e5f\u6709\u5706\u89d2\uff0c\u53ef\u4ee5\u52a0\u4e0b\u9762\u8fd9\u53e5 */\n"
+"    border-radius: 5px; \n"
+"}\n"
+"\n"
+"/*\u79fb\u9664\u4e0b\u62c9\u7bad\u5934 */\n"
+"QComboBox::drop-down {\n"
+"    width: 0px;                         /* \u5c06\u4e0b\u62c9\u533a\u57df\u5bbd\u5ea6\u8bbe\u4e3a0 */\n"
+"    border: none;                       /* \u79fb\u9664\u53ef\u80fd\u5b58\u5728\u7684\u5206\u5272\u7ebf */\n"
+"}\n"
+"QComboBox::down-arrow {\n"
+"    image: none;                        /* \u660e\u786e\u4e0d\u663e\u793a\u4efb\u4f55\u56fe\u6807 */\n"
 "}")
-        self.SelectWhisperModel.setIcon(icon4)
-        self.SelectWhisperModel.setIconSize(QSize(25, 25))
+        self.WhisperEngineSelect.setEditable(False)
 
-        self.gridLayout.addWidget(self.SelectWhisperModel, 0, 2, 1, 1)
+        self.horizontalLayout_9.addWidget(self.WhisperEngineSelect)
 
+
+        self.gridLayout.addLayout(self.horizontalLayout_9, 0, 1, 1, 1)
+
+        self.horizontalLayout_4 = QHBoxLayout()
+        self.horizontalLayout_4.setSpacing(10)
+        self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
         self.WhisperLanguageLabel = QLabel(self.AutoSub)
         self.WhisperLanguageLabel.setObjectName(u"WhisperLanguageLabel")
         sizePolicy.setHeightForWidth(self.WhisperLanguageLabel.sizePolicy().hasHeightForWidth())
@@ -1152,7 +1246,7 @@ class Ui_SubtitleToolbox(object):
         self.WhisperLanguageLabel.setTextFormat(Qt.TextFormat.PlainText)
         self.WhisperLanguageLabel.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
-        self.gridLayout.addWidget(self.WhisperLanguageLabel, 1, 0, 1, 1, Qt.AlignmentFlag.AlignRight)
+        self.horizontalLayout_4.addWidget(self.WhisperLanguageLabel)
 
         self.WhisperLanguageSelect = QComboBox(self.AutoSub)
         self.WhisperLanguageSelect.addItem("")
@@ -1216,10 +1310,13 @@ class Ui_SubtitleToolbox(object):
 "}")
         self.WhisperLanguageSelect.setEditable(False)
 
-        self.gridLayout.addWidget(self.WhisperLanguageSelect, 1, 1, 1, 1)
+        self.horizontalLayout_4.addWidget(self.WhisperLanguageSelect)
 
 
-        self.verticalLayout_3.addLayout(self.gridLayout)
+        self.gridLayout.addLayout(self.horizontalLayout_4, 1, 1, 1, 1)
+
+
+        self.verticalLayout_8.addLayout(self.gridLayout)
 
         self.Function.addTab(self.AutoSub, "")
 
@@ -1527,7 +1624,7 @@ class Ui_SubtitleToolbox(object):
 
         self.retranslateUi(SubtitleToolbox)
 
-        self.Function.setCurrentIndex(0)
+        self.Function.setCurrentIndex(3)
 
 
         QMetaObject.connectSlotsByName(SubtitleToolbox)
@@ -1612,14 +1709,18 @@ class Ui_SubtitleToolbox(object):
 
         self.Function.setTabText(self.Function.indexOf(self.Srt2Ass), QCoreApplication.translate("SubtitleToolbox", u"Srt2Ass", None))
         self.WhisperModelLabel.setText(QCoreApplication.translate("SubtitleToolbox", u"\u5f53\u524d\u6a21\u578b", None))
-        self.WhisperModelSelect.setItemText(0, QCoreApplication.translate("SubtitleToolbox", u"faster-whisper-large-v3-turbo", None))
-        self.WhisperModelSelect.setItemText(1, QCoreApplication.translate("SubtitleToolbox", u"faster-whisper-large-v3", None))
-        self.WhisperModelSelect.setItemText(2, QCoreApplication.translate("SubtitleToolbox", u"faster-whisper-large-v2", None))
-
 #if QT_CONFIG(tooltip)
         self.SelectWhisperModel.setToolTip(QCoreApplication.translate("SubtitleToolbox", u"\u9009\u62e9Whisper\u6a21\u578b\u76ee\u5f55", None))
 #endif // QT_CONFIG(tooltip)
         self.SelectWhisperModel.setText("")
+        self.WhisperModelSelect.setItemText(0, QCoreApplication.translate("SubtitleToolbox", u"faster-whisper-large-v3-turbo", None))
+        self.WhisperModelSelect.setItemText(1, QCoreApplication.translate("SubtitleToolbox", u"faster-whisper-large-v3", None))
+        self.WhisperModelSelect.setItemText(2, QCoreApplication.translate("SubtitleToolbox", u"faster-whisper-large-v2", None))
+
+        self.WhisperEngineLabel.setText(QCoreApplication.translate("SubtitleToolbox", u"\u6a21\u5f0f", None))
+        self.WhisperEngineSelect.setItemText(0, QCoreApplication.translate("SubtitleToolbox", u"GPU", None))
+        self.WhisperEngineSelect.setItemText(1, QCoreApplication.translate("SubtitleToolbox", u"CPU", None))
+
         self.WhisperLanguageLabel.setText(QCoreApplication.translate("SubtitleToolbox", u"\u8bed\u8a00", None))
         self.WhisperLanguageSelect.setItemText(0, QCoreApplication.translate("SubtitleToolbox", u"\u81ea\u52a8", None))
         self.WhisperLanguageSelect.setItemText(1, QCoreApplication.translate("SubtitleToolbox", u"\u97e9\u8bed", None))

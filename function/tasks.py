@@ -8,46 +8,18 @@
 import os
 import sys
 
-# 在导入任何模块之前设置 DLL 搜索路径
+# 处理内部目录（仅适用于打包程序）
+internal_dir = None
 if getattr(sys, 'frozen', False):
-    # 打包后的程序
     base_dir = os.path.dirname(sys.executable)
-    cuda_base = os.path.join(os.path.dirname(base_dir), 'Faster_Whisper_Model')
     internal_dir = os.path.join(base_dir, '_internal')  # torch DLL 在这里
-else:
-    # 开发环境
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    cuda_base = os.path.join(os.path.dirname(base_dir), 'Faster_Whisper_Model')
-    internal_dir = None  # 开发环境不需要
-
-cuda_paths = [
-    os.path.join(cuda_base, 'nvidia', 'cublas', 'bin'),
-    os.path.join(cuda_base, 'nvidia', 'cudnn', 'bin'),
-    os.path.join(cuda_base, 'nvidia', 'cuda_runtime', 'bin'),
-]
 
 # 添加 _internal 目录到 PATH（打包后的程序，torch DLL 在这里）
 if internal_dir and os.path.exists(internal_dir):
     current_path = os.environ.get('PATH', '')
     if internal_dir not in current_path:
         os.environ['PATH'] = internal_dir + os.pathsep + current_path
-
-# 添加 CUDA 库路径
-for cuda_path in cuda_paths:
-    if os.path.exists(cuda_path):
-        current_path = os.environ.get('PATH', '')
-        if cuda_path not in current_path:
-            os.environ['PATH'] = cuda_path + os.pathsep + current_path
-
-# 同时也使用 add_dll_directory
-for cuda_path in cuda_paths:
-    if os.path.exists(cuda_path):
-        try:
-            os.add_dll_directory(cuda_path)
-        except AttributeError:
-            pass
-
-if internal_dir and os.path.exists(internal_dir):
+    
     try:
         os.add_dll_directory(internal_dir)
     except AttributeError:
@@ -271,9 +243,15 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
                 log_callback(f"✅ 处理完成: 成功 {success_count} 个，失败 {fail_count} 个")
 
             except Exception as e:
-                log_callback(f"❌ AutoSub模式处理失败: {e}")
-                import traceback
-                log_callback(f"详细错误: {traceback.format_exc()}")
+                error_str = str(e)
+                if "❌ 未设置 CUDA 路径 (cublas64_12.dll)" in error_str:
+                    # 只显示一次 CUDA 路径错误提示
+                    log_callback(error_str)
+                else:
+                    # 其他 AutoSub 错误保持原样
+                    log_callback(f"❌ AutoSub模式处理失败: {e}")
+                # 不再输出详细错误，避免重复提示
+                return False
         
         # 不做任何清理操作，让 Python 的垃圾回收器自然处理
         # 自动模式下 Whisper 的析构函数会卡死，所以不能显式清理

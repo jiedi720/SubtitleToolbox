@@ -151,6 +151,9 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
 
         # Whisper语言选择下拉框信号
         self.WhisperLanguageSelect.currentIndexChanged.connect(self._on_whisper_language_changed)
+        
+        # Whisper引擎选择下拉框信号
+        self.WhisperEngineSelect.currentIndexChanged.connect(self._on_whisper_engine_changed)
 
         # 连接控制器信号到GUI槽函数（线程安全更新）
         if hasattr(self.app, 'update_log'):
@@ -356,7 +359,8 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
             self.VolumeLabel,
             self.AssPatternLabel,
             self.WhisperModelLabel,
-            self.WhisperLanguageLabel
+            self.WhisperLanguageLabel,
+            self.WhisperEngineLabel
         ]
 
         for label in label_widgets:
@@ -867,6 +871,28 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         else:
             self.log(f"✓ 已切换 Whisper 语言: {language_name} ({language_code})")
     
+    def _on_whisper_engine_changed(self, value):
+        """
+        Whisper 引擎选择变化时的处理
+
+        Args:
+            value: 引擎索引
+        """
+        # 获取当前选中的引擎类型
+        engine_type = self.WhisperEngineSelect.currentText()
+
+        # 更新控制器的引擎设置
+        if hasattr(self.app, 'whisper_engine'):
+            self.app.whisper_engine = engine_type
+        
+        # 保存到配置
+        if hasattr(self.app, 'config'):
+            self.app.config.whisper_engine = engine_type
+            self.app.config.save_settings()
+
+        # 记录日志
+        self.log(f"✓ 已切换 Whisper 引擎: {engine_type}")
+    
 
     
     def _update_gui_from_settings(self):
@@ -964,6 +990,17 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
                 self.WhisperLanguageSelect.setCurrentIndex(language_index)
             # 恢复信号发射
             self.WhisperLanguageSelect.blockSignals(False)
+        
+        # 更新Whisper引擎选择
+        if hasattr(self.app, 'whisper_engine'):
+            # 阻止信号发射
+            self.WhisperEngineSelect.blockSignals(True)
+            # 查找引擎在下拉框中的索引
+            engine_index = self.WhisperEngineSelect.findText(self.app.whisper_engine)
+            if engine_index >= 0:
+                self.WhisperEngineSelect.setCurrentIndex(engine_index)
+            # 恢复信号发射
+            self.WhisperEngineSelect.blockSignals(False)
 
         # 更新ASS字体方案选择
         if hasattr(self.app, 'ass_pattern'):

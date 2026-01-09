@@ -176,6 +176,7 @@ class ConfigManager:
         self.whisper_model = "默认"  # 当前 Whisper 模型
         self.whisper_model_path = "C:/Users/jiedi/AppData/Roaming/PotPlayerMini64/Model/faster-whisper-large-v3-turbo"  # Whisper 模型目录路径（默认值）
         self.whisper_language = "auto"  # Whisper 语言设置（"auto" 表示自动检测）
+        self.whisper_engine = "GPU"  # Whisper 引擎设置（"GPU" 或 "CPU"）
         self.cuda_library_path = ""  # CUDA 库路径（用于 GPU 加速）
 
     def load_settings(self):
@@ -223,6 +224,9 @@ class ConfigManager:
             self.whisper_language = "auto"
         else:
             self.whisper_language = language_value
+        
+        # 加载 Whisper 引擎设置
+        self.whisper_engine = autosub_config.get("whisper_engine", "GPU")
         
         # 加载 CUDA 库路径
         self.cuda_library_path = autosub_config.get("cuda_library_path", "")
@@ -359,6 +363,7 @@ class ConfigManager:
                 "autosub_output_dir": self.autosub_output_dir.strip() if hasattr(self, 'autosub_output_dir') else "",
                 "model_dir": os.path.normpath(self.whisper_model_path) if hasattr(self, 'whisper_model_path') and self.whisper_model_path else "",
                 "language": self.whisper_language if hasattr(self, 'whisper_language') else "auto",
+                "whisper_engine": self.whisper_engine if hasattr(self, 'whisper_engine') else "GPU",
                 "cuda_library_path": self.cuda_library_path.strip() if hasattr(self, 'cuda_library_path') else ""
             }
         }
