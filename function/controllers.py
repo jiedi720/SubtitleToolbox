@@ -400,31 +400,30 @@ class UnifiedApp(BaseController, UIController, TaskController, ToolController):
         """
         # 初始化基础控制器，设置变量、配置和主题
         BaseController.__init__(self, root, startup_path, startup_out)
-        
+
         # 实例化GUI
         from gui.qt_gui import ToolboxGUI
         self.gui = ToolboxGUI(self.root, self)
-        
-        # 暂时禁用主题设置，避免卡死
+
         # 应用保存的主题设置（使用增强的主题切换函数）
-        # from gui.theme import apply_theme_enhanced
-        # apply_theme_enhanced(self.theme_mode)
-        
-        # # 设置主题属性，使控件能够根据主题应用不同的样式
-        # theme_value = self.theme_mode.lower()
-        # self.gui.setProperty("theme", theme_value)  # 为主窗口设置主题属性，使 QToolTip 样式生效
-        # self.gui.Function.setProperty("theme", theme_value)
-        # self.gui.menuBar.setProperty("theme", theme_value)
-        
+        from gui.theme import apply_theme_enhanced
+        apply_theme_enhanced(self.theme_mode)
+
+        # 设置主题属性，使控件能够根据主题应用不同的样式
+        theme_value = self.theme_mode.lower()
+        self.gui.setProperty("theme", theme_value)  # 为主窗口设置主题属性，使 QToolTip 样式生效
+        self.gui.Function.setProperty("theme", theme_value)
+        self.gui.menuBar.setProperty("theme", theme_value)
+
         # # 额外的初始化处理：确保所有部件都正确应用主题
         # from PySide6.QtWidgets import QApplication
         # app = QApplication.instance()
-        
+
         # # 强制刷新所有部件的样式表
         # self.gui.Function.setStyleSheet(self.gui.Function.styleSheet())
         # self.gui.menuBar.setStyleSheet(self.gui.menuBar.styleSheet())
         # self.gui.Log.setStyleSheet(self.gui.Log.styleSheet())
-        
+
         # # 刷新所有标签部件（移除硬编码颜色）
         # label_widgets = [
         #     self.gui.VolumeLabel,
@@ -432,32 +431,26 @@ class UnifiedApp(BaseController, UIController, TaskController, ToolController):
         #     self.gui.WhisperModelLabel,
         #     self.gui.WhisperLanguageLabel
         # ]
-        
+
         # for label in label_widgets:
         #     if label:
         #         current_style = label.styleSheet()
         #         if 'color: rgb(0, 0, 0);' in current_style:
         #             label.setStyleSheet(current_style.replace('color: rgb(0, 0, 0);', 'color: palette(text);'))
-        
+
         # # 最后一次处理事件，确保所有更新都完成
         # app.processEvents()
-        
-        # # 重置进度条为 0，确保程序启动时进度条显示为空
-        # if hasattr(self.gui, 'ProgressBar'):
-        #     self.gui.ProgressBar.setValue(0)
-        
+
+        # 重置进度条为 0，确保程序启动时进度条显示为空
+        if hasattr(self.gui, 'ProgressBar'):
+            self.gui.ProgressBar.setValue(0)
+
         # # 连接覆盖对话框信号
         # self.show_overwrite_dialog.connect(self._on_show_overwrite_dialog)
-        
-        # 设置主题属性，使控件能够根据主题应用不同的样式
-        theme_value = self.theme_mode.lower()
-        self.gui.setProperty("theme", theme_value)  # 为主窗口设置主题属性，使 QToolTip 样式生效
-        self.gui.Function.setProperty("theme", theme_value)
-        self.gui.menuBar.setProperty("theme", theme_value)
-        
+
         # 连接覆盖对话框信号
         self.show_overwrite_dialog.connect(self._on_show_overwrite_dialog)
-        
+
         # 设置窗口关闭事件处理
         self.gui.closeEvent = self.on_close
 
