@@ -74,9 +74,9 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         self.ReadPathSet.clicked.connect(self._update_path_from_input)
         self.SavePathSet.clicked.connect(self._update_path_from_input)
         
-        # 路径输入框信号
-        self.ReadPathInput.textChanged.connect(self._on_source_path_changed)
-        self.SavePathInput.textChanged.connect(self._on_output_path_changed)
+        # 路径输入框信号 - 不再在文本改变时立即更新控制器
+        # self.ReadPathInput.textChanged.connect(self._on_source_path_changed)
+        # self.SavePathInput.textChanged.connect(self._on_output_path_changed)
         
         # 主功能按钮
         self.Start.clicked.connect(self.app.start_thread)
@@ -145,15 +145,35 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
     
     def _browse_source_dir(self):
         """浏览并选择源文件目录"""
+        import os
         from PySide6.QtWidgets import QFileDialog
         # 获取当前读取目录作为默认路径
         default_dir = self.app.path_var.strip() if hasattr(self.app, 'path_var') else ""
         dir_path = QFileDialog.getExistingDirectory(self, "选择源文件目录", default_dir)
         if dir_path:
-            self.ReadPathInput.setText(dir_path)
+            # 标准化路径分隔符
+            normalized_dir_path = os.path.normpath(dir_path)
+            self.ReadPathInput.setText(normalized_dir_path)
+            # 自动更新控制器中的路径变量，无需手动点击"更新目录"
+            self.app.path_var = normalized_dir_path
+
+            # 根据当前任务模式更新对应的路径变量
+            if hasattr(self.app, 'task_mode'):
+                if self.app.task_mode == "Script":
+                    self.app.script_dir = normalized_dir_path
+                elif self.app.task_mode == "Merge":
+                    self.app.merge_dir = normalized_dir_path
+                elif self.app.task_mode == "Srt2Ass":
+                    self.app.srt2ass_dir = normalized_dir_path
+                elif self.app.task_mode == "AutoSub":
+                    self.app.autosub_dir = normalized_dir_path
+
+            # 添加日志提示
+            self.log(f"📁 源目录已选择: {normalized_dir_path}")
     
     def _browse_output_dir(self):
         """浏览并选择输出目录"""
+        import os
         from PySide6.QtWidgets import QFileDialog
         # 获取当前输出目录作为默认路径，如果没有则使用读取目录
         default_dir = self.app.output_path_var.strip() if hasattr(self.app, 'output_path_var') and self.app.output_path_var.strip() else ""
@@ -161,7 +181,25 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
             default_dir = self.app.path_var.strip()
         dir_path = QFileDialog.getExistingDirectory(self, "选择输出位置", default_dir)
         if dir_path:
-            self.SavePathInput.setText(dir_path)
+            # 标准化路径分隔符
+            normalized_dir_path = os.path.normpath(dir_path)
+            self.SavePathInput.setText(normalized_dir_path)
+            # 自动更新控制器中的路径变量，无需手动点击"更新目录"
+            self.app.output_path_var = normalized_dir_path
+
+            # 根据当前任务模式更新对应的路径变量
+            if hasattr(self.app, 'task_mode'):
+                if self.app.task_mode == "Script":
+                    self.app.script_output_dir = normalized_dir_path
+                elif self.app.task_mode == "Merge":
+                    self.app.merge_output_dir = normalized_dir_path
+                elif self.app.task_mode == "Srt2Ass":
+                    self.app.srt2ass_output_dir = normalized_dir_path
+                elif self.app.task_mode == "AutoSub":
+                    self.app.autosub_output_dir = normalized_dir_path
+
+            # 添加日志提示
+            self.log(f"📁 输出目录已选择: {normalized_dir_path}")
     
     def _on_source_path_changed(self, text):
         """源路径输入框变化时同步到控制器"""
@@ -173,9 +211,35 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
     
     def _update_path_from_input(self):
         """从输入框更新路径到控制器（不再自动保存配置）"""
-        # 路径已经在 textChanged 信号中同步到控制器了
-        # 这个方法只是为了触发刷新等操作，不保存配置
-        pass
+        # 从输入框获取路径并更新到控制器
+        source_path = self.ReadPathInput.text().strip()
+        output_path = self.SavePathInput.text().strip()
+
+        # 更新控制器中的路径变量
+        self.app.path_var = source_path
+        self.app.output_path_var = output_path
+
+        # 根据当前任务模式更新对应的路径变量
+        if hasattr(self.app, 'task_mode'):
+            if self.app.task_mode == "Script":
+                self.app.script_dir = source_path
+                self.app.script_output_dir = output_path
+            elif self.app.task_mode == "Merge":
+                self.app.merge_dir = source_path
+                self.app.merge_output_dir = output_path
+            elif self.app.task_mode == "Srt2Ass":
+                self.app.srt2ass_dir = source_path
+                self.app.srt2ass_output_dir = output_path
+            elif self.app.task_mode == "AutoSub":
+                self.app.autosub_dir = source_path
+                self.app.autosub_output_dir = output_path
+
+        # 添加日志提示
+        self.log(f"📁 源目录已更新: {source_path if source_path else '(未设置)'}")
+        if output_path:
+            self.log(f"📁 输出目录已更新: {output_path}")
+        else:
+            self.log(f"📁 输出目录已更新: (使用源目录)")
     
     def _on_pdf_state_changed(self, checked):
         """PDF输出选项变化时同步到控制器"""
@@ -210,14 +274,20 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
     def _open_source_dir(self):
         """打开源文件目录"""
         import os
-        path = self.ReadPathInput.text()
+        # 优先使用输入框中的路径，如果输入框为空则使用控制器中的路径
+        path = self.ReadPathInput.text().strip()
+        if not path and hasattr(self.app, 'path_var'):
+            path = self.app.path_var.strip()
         if path and os.path.exists(path):
             os.startfile(path)
-    
+
     def _open_output_dir(self):
         """打开输出目录"""
         import os
-        path = self.SavePathInput.text()
+        # 优先使用输入框中的路径，如果输入框为空则使用控制器中的路径
+        path = self.SavePathInput.text().strip()
+        if not path and hasattr(self.app, 'output_path_var'):
+            path = self.app.output_path_var.strip()
         if path and os.path.exists(path):
             os.startfile(path)
     
