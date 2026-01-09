@@ -175,22 +175,21 @@ class SubtitleGenerator:
                 log_callback("⌛ 正在处理音频片段...")
 
             # 遍历segments，收集所有片段
-            # 在遍历过程中更新进度条（处理音频阶段：10%-90%）
+            # 在遍历过程中更新进度条（使用动画效果）
             for segment in segments:
                 segments_list.append(segment)
                 segment_count += 1
 
-                # 每处理 5 个片段更新一次进度条
+                # 每处理 5 个片段更新一次进度条（动画效果）
                 if progress_callback and segment_count % 5 == 0:
-                    # 使用一个启发式方法：假设总共有约100个片段
-                    # 实际上我们不知道总数，但可以给出一个合理的进度显示
-                    # 进度范围：10%-90%
-                    progress_value = 10 + min(segment_count, 80)
-                    progress_callback(progress_value)
+                    # 使用循环动画效果：0, 5, 10, 5, 0, 5, 10, 5, 0...
+                    animation_counter = (segment_count // 5) % 3
+                    animation_values = [0, 5, 10]
+                    progress_callback(animation_values[animation_counter])
 
-            # 遍历完成，将进度条设置为90%（音频处理完成）
+            # 遍历完成，将进度条设置为10%（音频处理完成）
             if progress_callback:
-                progress_callback(90)
+                progress_callback(10)
 
             # 限制最大片段数量，防止无限迭代
             max_segments = 2000
@@ -359,8 +358,9 @@ class SubtitleGenerator:
             existing_files = []
             new_files = []
 
-            # 识别文件字幕阶段（0%-10%）
+            # 识别文件字幕阶段（使用动画效果）
             total_mp3_count = len(mp3_files)
+            animation_counter = 0
             for mp3_idx, mp3_file in enumerate(mp3_files):
                 base_name = os.path.splitext(os.path.basename(mp3_file))[0]
                 dir_name = os.path.dirname(mp3_file)
@@ -377,10 +377,11 @@ class SubtitleGenerator:
                 else:
                     new_files.append(mp3_file)
 
-                # 更新识别文件字幕阶段的进度（0%-10%）
+                # 更新动画进度
                 if progress_callback:
-                    progress_value = int((mp3_idx + 1) / total_mp3_count * 10)
-                    progress_callback(progress_value)
+                    animation_counter = (animation_counter + 1) % 3
+                    animation_values = [0, 5, 10]
+                    progress_callback(animation_values[animation_counter])
 
             if log_callback:
                 if new_files:
@@ -393,6 +394,9 @@ class SubtitleGenerator:
             all_files = new_files + existing_files  # 先处理新的，再处理已存在的
 
             total_files = len(all_files)
+            # 动画循环计数器
+            animation_counter = 0
+
             for idx, mp3_file in enumerate(all_files):
                 base_name = os.path.splitext(os.path.basename(mp3_file))[0]
                 dir_name = os.path.dirname(mp3_file)
@@ -411,29 +415,27 @@ class SubtitleGenerator:
                     results.append((mp3_file, existing_subtitle, True))
                     if log_callback:
                         log_callback(f"⏭️ 跳过: {os.path.basename(mp3_file)} (已存在字幕)")
-                    # 更新进度条到当前文件的完成位置
+                    # 更新动画进度
                     if progress_callback:
-                        progress_value = int((idx + 1) / total_files * 100)
-                        progress_callback(progress_value)
+                        animation_counter = (animation_counter + 1) % 3
+                        animation_values = [0, 5, 10]
+                        progress_callback(animation_values[animation_counter])
                     continue
 
                 if log_callback:
                     log_callback(f"\n正在处理: {os.path.basename(mp3_file)} ({idx+1}/{total_files})")
 
-                # 为当前文件创建一个包装后的 progress_callback
-                def create_file_progress_callback(file_idx, file_total):
+                # 为当前文件创建一个包装后的 progress_callback（使用动画效果）
+                def create_animation_progress_callback():
                     def wrapped_progress_callback(segment_progress):
-                        # 计算当前文件在总进度中的位置
-                        file_start = file_idx / file_total * 100
-                        file_end = (file_idx + 1) / file_total * 100
-                        file_range = file_end - file_start
-
-                        # 计算实际进度
-                        actual_progress = int(file_start + segment_progress / 100 * file_range)
-                        progress_callback(actual_progress)
+                        # 使用循环动画效果：0, 5, 10, 5, 0, 5, 10, 5, 0...
+                        nonlocal animation_counter
+                        animation_counter = (animation_counter + 1) % 3
+                        animation_values = [0, 5, 10]
+                        progress_callback(animation_values[animation_counter])
                     return wrapped_progress_callback
 
-                file_progress_callback = create_file_progress_callback(idx, total_files)
+                file_progress_callback = create_animation_progress_callback()
 
                 try:
                     output_file = self.generate_subtitle(mp3_file, log_callback, file_progress_callback)
