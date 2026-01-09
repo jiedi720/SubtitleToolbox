@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'SubtitleToolboxMZjMTs.ui'
+## Form generated from reading UI file 'SubtitleToolboxBIRybY.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.10.1
 ##
@@ -194,7 +194,7 @@ class Ui_SubtitleToolbox(object):
 "    text-align: center;\n"
 "}")
         icon3 = QIcon()
-        icon3.addFile(u"e:/OneDrive/PythonProject/SubtitleToolbox/resources/open-folder2.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        icon3.addFile(u"icons/open-folder2.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.ReadPathOpen.setIcon(icon3)
         self.ReadPathOpen.setIconSize(QSize(20, 20))
 
@@ -227,7 +227,7 @@ class Ui_SubtitleToolbox(object):
 "    text-align: center;\n"
 "}")
         icon4 = QIcon()
-        icon4.addFile(u"e:/OneDrive/PythonProject/SubtitleToolbox/resources/search2.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        icon4.addFile(u"icons/search2.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.ReadPathSelect.setIcon(icon4)
         self.ReadPathSelect.setIconSize(QSize(20, 20))
 
@@ -261,7 +261,7 @@ class Ui_SubtitleToolbox(object):
 "    text-align: center;\n"
 "}")
         icon5 = QIcon()
-        icon5.addFile(u"e:/OneDrive/PythonProject/SubtitleToolbox/resources/refresh.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        icon5.addFile(u"icons/refresh.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.ReadPathSet.setIcon(icon5)
         self.ReadPathSet.setIconSize(QSize(20, 20))
 
@@ -492,7 +492,7 @@ class Ui_SubtitleToolbox(object):
                         "adius: 9px;\n"
 "}")
         icon6 = QIcon()
-        icon6.addFile(u"e:/OneDrive/PythonProject/SubtitleToolbox/resources/PDF.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        icon6.addFile(u"icons/PDF.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.Output2PDF.setIcon(icon6)
         self.Output2PDF.setIconSize(QSize(35, 35))
         self.Output2PDF.setCheckable(True)
@@ -541,7 +541,7 @@ class Ui_SubtitleToolbox(object):
                         "adius: 9px;\n"
 "}")
         icon7 = QIcon()
-        icon7.addFile(u"e:/OneDrive/PythonProject/SubtitleToolbox/resources/Word.ico", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        icon7.addFile(u"icons/Word.ico", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.Output2Word.setIcon(icon7)
         self.Output2Word.setIconSize(QSize(35, 35))
         self.Output2Word.setCheckable(True)
@@ -588,7 +588,7 @@ class Ui_SubtitleToolbox(object):
                         "adius: 9px;\n"
 "}")
         icon8 = QIcon()
-        icon8.addFile(u"e:/OneDrive/PythonProject/SubtitleToolbox/resources/txt.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        icon8.addFile(u"icons/txt.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.Output2Txt.setIcon(icon8)
         self.Output2Txt.setIconSize(QSize(35, 35))
         self.Output2Txt.setCheckable(True)
@@ -1235,7 +1235,7 @@ class Ui_SubtitleToolbox(object):
 "    text-align: center;\n"
 "}")
         icon9 = QIcon()
-        icon9.addFile(u"e:/OneDrive/PythonProject/SubtitleToolbox/resources/shuttle.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        icon9.addFile(u"icons/shuttle.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.Start.setIcon(icon9)
         self.Start.setIconSize(QSize(30, 30))
         self.Start.setCheckable(False)
@@ -1276,7 +1276,7 @@ class Ui_SubtitleToolbox(object):
 "}\n"
 "")
         icon10 = QIcon()
-        icon10.addFile(u"e:/OneDrive/PythonProject/SubtitleToolbox/resources/broom.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        icon10.addFile(u"icons/broom.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.ClearLogs.setIcon(icon10)
         self.ClearLogs.setIconSize(QSize(40, 40))
 
@@ -1311,7 +1311,7 @@ class Ui_SubtitleToolbox(object):
 "    text-align: center;\n"
 "}")
         icon11 = QIcon()
-        icon11.addFile(u"e:/OneDrive/PythonProject/SubtitleToolbox/resources/delete.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        icon11.addFile(u"icons/delete.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.DeleteFiles.setIcon(icon11)
         self.DeleteFiles.setIconSize(QSize(30, 30))
 
@@ -1356,7 +1356,7 @@ class Ui_SubtitleToolbox(object):
 "    background-color: #05B8CC;   /* \u8fdb\u5ea6\u6761\u989c\u8272\uff1a\u9752\u84dd\u8272 */\n"
 "    border-radius: 7px;          /* \u8fdb\u5ea6\u6761\u7684\u5706\u89d2 */\n"
 "}")
-        self.ProgressBar.setValue(0)
+        self.ProgressBar.setValue(24)
         self.ProgressBar.setTextVisible(False)
         self.ProgressBar.setOrientation(Qt.Orientation.Horizontal)
         self.ProgressBar.setInvertedAppearance(False)
