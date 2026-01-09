@@ -91,7 +91,7 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         # 图标映射（根据 ui_SubtitleToolbox.py 中的图标设定）
         icon_map = {
             'open-folder2.png': [self.ReadPathOpen, self.SavePathOpen],
-            'search2.png': [self.ReadPathSelect, self.SavePathSet, self.SelectWhisperModel],
+            'search2.png': [self.ReadPathSelect, self.SavePathSelect, self.SelectWhisperModel],
             'refresh.png': [self.ReadPathSet, self.SavePathSet],
             'PDF.png': [self.Output2PDF, self.MergePDF],
             'Word.ico': [self.Output2Word, self.MergeWord],
