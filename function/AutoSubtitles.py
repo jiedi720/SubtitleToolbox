@@ -61,6 +61,57 @@ class SubtitleGenerator:
         
         model_input = self.model_path if self.model_path else self.model_size
         
+        # 如果指定了本地模型路径，检查是否需要自动查找子目录
+        if self.model_path:
+            if os.path.isdir(self.model_path):
+                # 如果是目录，查找其中的模型子目录
+                model_dir = self.model_path
+                possible_subdirs = [
+                    "faster-whisper-large-v3-turbo",
+                    "large-v3-turbo",
+                    "large-v3",
+                    "base",
+                    "small",
+                    "medium"
+                ]
+                
+                # 检查是否有 model.bin 文件
+                has_model_bin = False
+                for item in os.listdir(model_dir):
+                    if item == "model.bin":
+                        has_model_bin = True
+                        break
+                
+                if not has_model_bin:
+                    # 没有 model.bin，查找子目录
+                    found_subdir = None
+                    for subdir in possible_subdirs:
+                        subdir_path = os.path.join(model_dir, subdir)
+                        if os.path.isdir(subdir_path):
+                            # 检查子目录中是否有 model.bin
+                            for item in os.listdir(subdir_path):
+                                if item == "model.bin":
+                                    found_subdir = subdir_path
+                                    break
+                            if found_subdir:
+                                break
+                    
+                    if found_subdir:
+                        model_input = found_subdir
+                        if log_callback:
+                            log_callback(f"找到模型子目录: {found_subdir}")
+                    else:
+                        # 检查是否有 snapshots 目录（huggingface 缓存格式）
+                        snapshots_dir = os.path.join(model_dir, "snapshots")
+                        if os.path.isdir(snapshots_dir):
+                            snapshot_dirs = [d for d in os.listdir(snapshots_dir) if os.path.isdir(os.path.join(snapshots_dir, d))]
+                            if snapshot_dirs:
+                                snapshot_path = os.path.join(snapshots_dir, snapshot_dirs[0])
+                                if os.path.isdir(snapshot_path):
+                                    model_input = snapshot_path
+                                    if log_callback:
+                                        log_callback(f"找到模型快照目录: {snapshot_path}")
+        
         # 如果没有指定本地模型路径，检查是否允许下载
         if not self.model_path and not self.allow_download:
             # 检查模型是否已缓存
@@ -187,9 +238,9 @@ class SubtitleGenerator:
                     animation_values = [0, 5, 10]
                     progress_callback(animation_values[animation_counter])
 
-            # 遍历完成，将进度条设置为10%（音频处理完成）
-            if progress_callback:
-                progress_callback(10)
+            # 遍历完成，不更新进度条
+            # if progress_callback:
+            #     progress_callback(10)
 
             # 限制最大片段数量，防止无限迭代
             max_segments = 2000
@@ -289,18 +340,15 @@ class SubtitleGenerator:
             progress_callback: 进度回调函数（可选），用于更新进度条
         """
         try:
-            if log_callback:
-                log_callback(f"⌛ 正在写入字幕文件: {os.path.basename(output_file)}")
-
             # 使用缓冲写入，避免卡死
             content_lines = []
             total_segments = len(segments)
 
             for i, segment in enumerate(segments, 1):
-                # 更新进度条（从 90% 到 100%）
-                if progress_callback and total_segments > 0:
-                    progress_value = int(90 + i / total_segments * 10)
-                    progress_callback(progress_value)
+                # 不更新进度条，只处理字幕
+                # if progress_callback and total_segments > 0:
+                #     progress_value = int(90 + i / total_segments * 10)
+                #     progress_callback(progress_value)
                 
                 start_time = segment.start
                 end_time = segment.end
@@ -339,55 +387,66 @@ class SubtitleGenerator:
             raise Exception("模型未初始化，请先调用 initialize_model()")
 
         try:
-            # 获取所有.mp3文件
-            mp3_files = []
+            # 获取所有音频和视频文件
+            media_files = []
             for root, _, files in os.walk(input_dir):
                 for file in files:
-                    if file.lower().endswith(".mp3"):
-                        mp3_files.append(os.path.join(root, file))
+                    # 支持音频和视频文件
+                    if file.lower().endswith((".mp3", ".mp4", ".mkv", ".avi")):
+                        media_files.append(os.path.join(root, file))
 
-            if not mp3_files:
+            if not media_files:
                 if log_callback:
-                    log_callback("❌ 错误: 未找到MP3文件")
+                    log_callback("❌ 错误: 未找到音频或视频文件")
                 return []
-            
-            if log_callback:
-                log_callback(f"找到 {len(mp3_files)} 个MP3文件")
             
             # 检测已生成的字幕文件
             existing_files = []
             new_files = []
 
-            # 识别文件字幕阶段（使用动画效果）
-            total_mp3_count = len(mp3_files)
-            animation_counter = 0
-            for mp3_idx, mp3_file in enumerate(mp3_files):
-                base_name = os.path.splitext(os.path.basename(mp3_file))[0]
-                dir_name = os.path.dirname(mp3_file)
+            for media_file in media_files:
+                base_name = os.path.splitext(os.path.basename(media_file))[0]
+                dir_name = os.path.dirname(media_file)
 
-                # 检查是否存在任何 .whisper.[].srt 文件
+                # 检查是否存在任何 .whisper.[].srt 文件或同名 .srt 文件
                 has_subtitle = False
                 for file in os.listdir(dir_name):
                     if file.startswith(f"{base_name}.whisper.[") and file.endswith("].srt"):
                         has_subtitle = True
                         break
+                    elif file == f"{base_name}.srt":
+                        has_subtitle = True
+                        break
 
                 if has_subtitle:
-                    existing_files.append(mp3_file)
+                    existing_files.append(media_file)
                 else:
-                    new_files.append(mp3_file)
+                    new_files.append(media_file)
 
-                # 更新动画进度
-                if progress_callback:
-                    animation_counter = (animation_counter + 1) % 3
-                    animation_values = [0, 5, 10]
-                    progress_callback(animation_values[animation_counter])
-
+            # 统计文件类型和字幕生成情况
+            file_stats = {}
+            for media_file in media_files:
+                ext = os.path.splitext(media_file)[1].lower().upper()  # 转换为大写，如 .MP3
+                if ext not in file_stats:
+                    file_stats[ext] = {'total': 0, 'has_subtitle': 0}
+                file_stats[ext]['total'] += 1
+            
+            for existing_file in existing_files:
+                ext = os.path.splitext(existing_file)[1].lower().upper()
+                if ext in file_stats:
+                    file_stats[ext]['has_subtitle'] += 1
+            
+            # 构建统计描述
+            stats_parts = []
+            for ext in sorted(file_stats.keys()):
+                stats = file_stats[ext]
+                stats_parts.append(f"{ext[1:]}（{stats['total']}/{stats['has_subtitle']}）")  # 去掉点号
+            
             if log_callback:
-                if new_files:
-                    log_callback(f"未生成字幕: {len(new_files)} 个")
-                if existing_files:
-                    log_callback(f"检测到 {len(existing_files)} 个文件已生成字幕，将跳过这 {len(existing_files)} 个文件")
+                total_files = len(media_files)
+                total_subtitle = len(existing_files)
+                stats_desc = "、".join(stats_parts)
+                log_callback(f"🎞️ 文件数/字幕数（ {total_files}/{total_subtitle}）：{stats_desc}")
 
             # 优先处理未生成的文件
             results = []
@@ -397,60 +456,71 @@ class SubtitleGenerator:
             # 动画循环计数器
             animation_counter = 0
 
-            for idx, mp3_file in enumerate(all_files):
-                base_name = os.path.splitext(os.path.basename(mp3_file))[0]
-                dir_name = os.path.dirname(mp3_file)
+            for idx, media_file in enumerate(all_files):
+                base_name = os.path.splitext(os.path.basename(media_file))[0]
+                dir_name = os.path.dirname(media_file)
 
                 # 检查是否已存在字幕
                 has_subtitle = False
                 existing_subtitle = None
+                
+                # 检查 .whisper.[].srt 文件
                 for file in os.listdir(dir_name):
                     if file.startswith(f"{base_name}.whisper.[") and file.endswith("].srt"):
                         has_subtitle = True
                         existing_subtitle = os.path.join(dir_name, file)
                         break
+                
+                # 检查同名 .srt 文件
+                if not has_subtitle:
+                    srt_file = os.path.join(dir_name, f"{base_name}.srt")
+                    if os.path.exists(srt_file):
+                        has_subtitle = True
+                        existing_subtitle = srt_file
 
                 if has_subtitle and skip_existing:
                     # 跳过已存在的字幕
-                    results.append((mp3_file, existing_subtitle, True))
+                    results.append((media_file, existing_subtitle, True))
                     if log_callback:
-                        log_callback(f"⏭️ 跳过: {os.path.basename(mp3_file)} (已存在字幕)")
-                    # 更新动画进度
-                    if progress_callback:
-                        animation_counter = (animation_counter + 1) % 3
-                        animation_values = [0, 5, 10]
-                        progress_callback(animation_values[animation_counter])
+                        log_callback(f"⏭️ 跳过: {os.path.basename(media_file)} (已存在字幕)")
+                    # 更新进度（多个文件时显示文件数进度）
+                    if progress_callback and total_files > 1:
+                        progress_value = int((idx + 1) / total_files * 100)
+                        progress_callback(progress_value)
                     continue
 
                 if log_callback:
-                    log_callback(f"\n正在处理: {os.path.basename(mp3_file)} ({idx+1}/{total_files})")
+                    log_callback(f"═════════════════════════════════════════════════════\n正在处理: {os.path.basename(media_file)} ({idx+1}/{total_files})")
 
-                # 为当前文件创建一个包装后的 progress_callback（使用动画效果）
+                # 为当前文件创建一个包装后的 progress_callback
                 def create_animation_progress_callback():
                     def wrapped_progress_callback(segment_progress):
-                        # 使用循环动画效果：0, 5, 10, 5, 0, 5, 10, 5, 0...
-                        nonlocal animation_counter
-                        animation_counter = (animation_counter + 1) % 3
-                        animation_values = [0, 5, 10]
-                        progress_callback(animation_values[animation_counter])
+                        # 多个文件时显示文件数进度，单个文件时不显示
+                        if progress_callback and total_files > 1:
+                            progress_value = int((idx + 1) / total_files * 100)
+                            progress_callback(progress_value)
                     return wrapped_progress_callback
 
                 file_progress_callback = create_animation_progress_callback()
 
                 try:
-                    output_file = self.generate_subtitle(mp3_file, log_callback, file_progress_callback)
-                    results.append((mp3_file, output_file, True))
+                    output_file = self.generate_subtitle(media_file, log_callback, file_progress_callback)
+                    results.append((media_file, output_file, True))
 
                     if log_callback:
                         log_callback(f"✅ 已生成: {os.path.basename(output_file)}")
                 except Exception as e:
-                    results.append((mp3_file, None, False))
+                    results.append((media_file, None, False))
                     if log_callback:
                         log_callback(f"❌ 处理失败: {str(e)}")
                     # 继续处理下一个文件
                     continue
 
             # 确保所有处理完成后再返回结果
+            # 多个文件时，重置进度条
+            if progress_callback and total_files > 1:
+                progress_callback(0)
+            
             return results
 
         except Exception as e:

@@ -174,18 +174,19 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
                 generator.initialize_model(log_callback=log_callback)
 
                 # 检测已生成的字幕文件
-                mp3_files = []
+                media_files = []
                 for root, _, files in os.walk(target_dir):
                     for file in files:
-                        if file.lower().endswith(".mp3"):
-                            mp3_files.append(os.path.join(root, file))
+                        # 支持音频和视频文件
+                        if file.lower().endswith((".mp3", ".mp4", ".mkv", ".avi")):
+                            media_files.append(os.path.join(root, file))
 
                 existing_files = []
                 new_files = []
 
-                for mp3_file in mp3_files:
-                    base_name = os.path.splitext(os.path.basename(mp3_file))[0]
-                    dir_name = os.path.dirname(mp3_file)
+                for media_file in media_files:
+                    base_name = os.path.splitext(os.path.basename(media_file))[0]
+                    dir_name = os.path.dirname(media_file)
 
                     has_subtitle = False
                     for file in os.listdir(dir_name):
@@ -194,9 +195,9 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
                             break
 
                     if has_subtitle:
-                        existing_files.append(mp3_file)
+                        existing_files.append(media_file)
                     else:
-                        new_files.append(mp3_file)
+                        new_files.append(media_file)
 
                 skip_existing = True
                 if existing_files:

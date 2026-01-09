@@ -32,8 +32,9 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         self.setupUi(self)
         
         # 设置窗口图标
-        resources_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "resources")
-        self.setWindowIcon(QIcon(os.path.join(resources_dir, "SubtitleToolbox.ico")))
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        icons_dir = os.path.join(base_dir, "icons")
+        self.setWindowIcon(QIcon(os.path.join(icons_dir, "SubtitleToolbox.ico")))
         
         # 配置日志区域
         self.Log.setReadOnly(True)
@@ -77,6 +78,36 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         # 路径输入框信号 - 不再在文本改变时立即更新控制器
         # self.ReadPathInput.textChanged.connect(self._on_source_path_changed)
         # self.SavePathInput.textChanged.connect(self._on_output_path_changed)
+        
+        # 设置所有图标
+        self._set_all_icons()
+    
+    def _set_all_icons(self):
+        """设置所有按钮图标"""
+        # 获取图标目录
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        icons_dir = os.path.join(base_dir, "icons")
+        
+        # 图标映射（根据 ui_SubtitleToolbox.py 中的图标设定）
+        icon_map = {
+            'open-folder2.png': [self.ReadPathOpen, self.SavePathOpen],
+            'search2.png': [self.ReadPathSelect, self.SavePathSet, self.SelectWhisperModel],
+            'refresh.png': [self.ReadPathSet, self.SavePathSet],
+            'PDF.png': [self.Output2PDF, self.MergePDF],
+            'Word.ico': [self.Output2Word, self.MergeWord],
+            'txt.png': [self.Output2Txt, self.MergeTxt],
+            'shuttle.png': [self.Start],
+            'broom.png': [self.ClearLogs],
+            'delete.png': [self.DeleteFiles],
+        }
+        
+        # 设置图标
+        for icon_file, widgets in icon_map.items():
+            icon_path = os.path.join(icons_dir, icon_file)
+            if os.path.exists(icon_path):
+                icon = QIcon(icon_path)
+                for widget in widgets:
+                    widget.setIcon(icon)
         
         # 主功能按钮
         self.Start.clicked.connect(self.app.start_thread)

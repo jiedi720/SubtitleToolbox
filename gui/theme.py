@@ -4,9 +4,11 @@ from PySide6.QtCore import Qt
 import sys
 import io
 
-# 设置标准输出为 UTF-8
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-
+# 设置标准输出为 UTF-8（只在非打包环境下）
+if hasattr(sys.stdout, 'buffer'):
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+if hasattr(sys.stderr, 'buffer'):
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 # 全局变量：保存程序启动时的默认样式名称
 _original_style = None
