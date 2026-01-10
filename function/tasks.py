@@ -81,14 +81,17 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
         elif task_mode == "Script":
             # 根据分卷模式获取batch_size
             batch = 0
-            if hasattr(gui, 'volume_pattern'):
+            volume_pattern = '智能'
+            if hasattr(gui, 'app') and hasattr(gui.app, 'volume_pattern'):
+                batch = get_batch_size_from_volume_pattern(gui.app.volume_pattern)
+                volume_pattern = gui.app.volume_pattern
+            elif hasattr(gui, 'volume_pattern'):
+                # 兼容旧版代码
                 batch = get_batch_size_from_volume_pattern(gui.volume_pattern)
-            
-            # 获取当前分卷模式
-            volume_pattern = getattr(gui, 'volume_pattern', '智能')
+                volume_pattern = gui.volume_pattern
             
             # 执行各类输出任务
-            if gui.Output2PDF:
+            if gui.Output2PDF.isChecked():
                 run_pdf_task(
                     target_dir, 
                     log_callback, 
@@ -98,7 +101,7 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
                     final_out, 
                     volume_pattern
                 )
-            if gui.Output2Word:
+            if gui.Output2Word.isChecked():
                 run_word_creation_task(
                     target_dir, 
                     log_callback, 
@@ -108,7 +111,7 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
                     final_out, 
                     volume_pattern
                 )
-            if gui.output2txt:
+            if gui.Output2Txt.isChecked():
                 run_txt_creation_task(
                     target_dir, 
                     log_callback, 

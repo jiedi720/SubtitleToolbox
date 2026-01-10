@@ -191,7 +191,15 @@ def run_ass_task(target_dir, styles, log_func, progress_bar, root, output_dir=No
         except Exception as e:
             log_func(f"❌ 处理 {t.get('ep')} 时出错: {e}")
 
-        # 更新进度条
-        progress_bar.emit(int((i + 1) / total * 100))
+        # 更新进度，支持不同类型的进度回调
+        try:
+            # 尝试PyQt的信号方式（progress_bar是信号对象）
+            progress_bar.emit(int((i + 1) / total * 100))
+        except AttributeError:
+            try:
+                # 尝试直接调用方式（progress_bar是emit方法本身）
+                progress_bar(int((i + 1) / total * 100))
+            except Exception as e:
+                pass
     
     log_func("📂 任务完成：.ass 已生成在根目录，原始 .srt 已归档至 srt/ 文件夹。")

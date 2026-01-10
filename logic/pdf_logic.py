@@ -100,6 +100,7 @@ except ImportError:
 from function.file_utils import find_files_recursively, get_organized_path, get_save_path
 from function.parsers import parse_subtitle_to_list
 from function.naming import generate_output_name, clean_filename_title
+from function.volumes import smart_group_files
 
 class Bookmark(Flowable):
     """PDF书签生成器
@@ -253,9 +254,11 @@ class MyDocTemplate(SimpleDocTemplate):
         
         c = self.canv
         c.saveState()
+        # 根据页眉标题内容动态选择字体
+        header_font = detect_font_for_text(self.current_header_title)
         # 使用已加载的字体
         try:
-            c.setFont(FONT_NAME_BODY, 9)
+            c.setFont(header_font, 9)
         except Exception as e:
             print(f"设置字体失败，使用默认字体: {e}")
             c.setFont('Helvetica', 9)
@@ -314,6 +317,18 @@ def run_pdf_task(target_dir, log_func, progress_bar, root, batch_size=0, output_
                          leading=14, 
                          spaceAfter=4, 
                          alignment=TA_LEFT)
+    
+    # 为目录项设置样式，支持韩语
+    toc_text = ParagraphStyle('TOCText', 
+                             fontName=FONT_NAME_BODY, 
+                             fontSize=12)
+    toc_link = ParagraphStyle('TOCLink', 
+                             parent=toc_text, 
+                             textColor=colors.blue)
+    
+    # 更新样式表
+    styles.add(toc_text)
+    styles.add(toc_link)
 
     # 确定基础输出目录
     base_output_dir = output_dir if output_dir else target_dir
@@ -328,11 +343,27 @@ def run_pdf_task(target_dir, log_func, progress_bar, root, batch_size=0, output_
         out_path = get_organized_path(base_output_dir, out_name)
         
         try:
-            # 创建PDF文档
+            # 生成PDF文档
             doc = MyDocTemplate(out_path, pagesize=A4, topMargin=25*mm, bottomMargin=25*mm, leftMargin=25*mm, rightMargin=25*mm)
             frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id='normal')
             doc.addPageTemplates([PageTemplate(id='normal', frames=frame)])
-            story = [Bookmark("TOC"), OutlineEntry("Content", "TOC"), Paragraph("Content", toc_h), TableOfContents(), TOCFinished(), PageBreak()]
+            # 创建目录对象并配置样式
+            toc = TableOfContents()
+            toc.levelStyles = [
+                ParagraphStyle('TOCLevel1', 
+                             fontName=FONT_NAME_KR, 
+                             fontSize=12, 
+                             leftIndent=20, 
+                             firstLineIndent=-20, 
+                             spaceBefore=5),
+                ParagraphStyle('TOCLevel2', 
+                             fontName=FONT_NAME_KR, 
+                             fontSize=11, 
+                             leftIndent=40, 
+                             firstLineIndent=-20, 
+                             spaceBefore=3)
+            ]
+            story = [Bookmark("TOC"), OutlineEntry("Content", "TOC"), Paragraph("Content", toc_h), toc, TOCFinished(), PageBreak()]
             
             for i, fp in enumerate(group):
                 clean_title = clean_filename_title(os.path.basename(fp))
@@ -340,7 +371,16 @@ def run_pdf_task(target_dir, log_func, progress_bar, root, batch_size=0, output_
                 if i > 0: 
                     story.append(PageBreak())
                     
-                p = Paragraph(clean_title, h1)
+                # 根据标题内容动态选择字体
+                title_font = detect_font_for_text(clean_title)
+                # 创建动态标题样式
+                dynamic_h1 = ParagraphStyle('ChapterTitle', 
+                                           fontName=title_font, 
+                                           fontSize=16, 
+                                           leading=20, 
+                                           spaceAfter=10, 
+                                           textColor=colors.darkblue)
+                p = Paragraph(clean_title, dynamic_h1)
                 p._bookmarkName = f"CH_{processed_count}"
                 story.extend([Bookmark(p._bookmarkName), OutlineEntry(clean_title, p._bookmarkName), p, Spacer(1, 10)])
                 
@@ -363,7 +403,16 @@ def run_pdf_task(target_dir, log_func, progress_bar, root, batch_size=0, output_
                         story.append(Paragraph(f"<b>[{time_str}]</b>  {safe_text}", dynamic_body))
                 
                 processed_count += 1
-                progress_bar.emit(int(processed_count / total_files * 100))
+                # 更新进度，支持不同类型的进度回调
+                try:
+                    # 尝试PyQt的信号方式（progress_bar是信号对象）
+                    progress_bar.emit(int(processed_count / total_files * 100))
+                except AttributeError:
+                    try:
+                        # 尝试直接调用方式（progress_bar是emit方法本身）
+                        progress_bar(int(processed_count / total_files * 100))
+                    except Exception as e:
+                        pass
             
             # 生成PDF
             doc.multiBuild(story)
@@ -371,5 +420,12 @@ def run_pdf_task(target_dir, log_func, progress_bar, root, batch_size=0, output_
         except Exception as e: 
             log_func(f"❌ 失败: {e}")
     
-    progress_bar.emit(0)
+    # 重置进度条
+    try:
+        progress_bar.emit(0)
+    except AttributeError:
+        try:
+            progress_bar(0)
+        except Exception as e:
+            pass
 

@@ -66,7 +66,16 @@ def run_pdf_merge_task(target_dir, log_func, progress_bar, root, output_dir=None
         for i, f in enumerate(target_files):
                 log_func(f"合并中: {os.path.basename(f)}")
                 merger.append(f)
-                progress_bar.emit(int((i + 1) / len(target_files) * 100))
+                # 更新进度，支持不同类型的进度回调
+                try:
+                    # 尝试PyQt的信号方式（progress_bar是信号对象）
+                    progress_bar.emit(int((i + 1) / len(target_files) * 100))
+                except AttributeError:
+                    try:
+                        # 尝试直接调用方式（progress_bar是emit方法本身）
+                        progress_bar(int((i + 1) / len(target_files) * 100))
+                    except Exception as e:
+                        pass
             
         # 输出合并后的PDF
         out_path = os.path.join(save_dir, "PDF合并.pdf")
@@ -76,7 +85,14 @@ def run_pdf_merge_task(target_dir, log_func, progress_bar, root, output_dir=None
     except Exception as e: 
         log_func(f"❌ 错误: {e}")
     finally: 
-        progress_bar.emit(0)
+        # 重置进度条
+        try:
+            progress_bar.emit(0)
+        except AttributeError:
+            try:
+                progress_bar(0)
+            except Exception as e:
+                pass
 
 
 def run_txt_merge_task(target_dir, log_func, progress_bar, root, output_dir=None):
@@ -123,12 +139,28 @@ def run_txt_merge_task(target_dir, log_func, progress_bar, root, output_dir=None
                 with open(fp, 'r', encoding='utf-8') as infile:
                     outfile.write(infile.read())
                     outfile.write("\n\n" + "="*50 + "\n\n") 
-                progress_bar.emit(int((i + 1) / total * 100))
+                # 更新进度，支持不同类型的进度回调
+                try:
+                    # 尝试PyQt的信号方式（progress_bar是信号对象）
+                    progress_bar.emit(int((i + 1) / total * 100))
+                except AttributeError:
+                    try:
+                        # 尝试直接调用方式（progress_bar是emit方法本身）
+                        progress_bar(int((i + 1) / total * 100))
+                    except Exception as e:
+                        pass
         log_func(f"✅ 合并成功: {out_path.replace('/', '\\')}")
     except Exception as e:
         log_func(f"❌ 合并失败: {e}")
     finally:
-        progress_bar.emit(0)
+        # 重置进度条
+        try:
+            progress_bar.emit(0)
+        except AttributeError:
+            try:
+                progress_bar(0)
+            except Exception as e:
+                pass
 
 
 def run_docx_merge_task(target_dir, log_func, progress_bar, root, output_dir=None):
@@ -282,7 +314,11 @@ def run_docx_merge_task(target_dir, log_func, progress_bar, root, output_dir=Non
                         if root:
                             root.update_idletasks()
                     except AttributeError:
-                        pass
+                        try:
+                            # 尝试直接调用方式（progress_bar是emit方法本身）
+                            progress_bar(int((i + 1) / len(target_files) * 100))
+                        except AttributeError:
+                            pass
             else:
                 log_func(f"❌ 文件不存在: {os.path.basename(fp)}")
         

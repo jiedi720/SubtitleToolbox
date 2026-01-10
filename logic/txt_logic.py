@@ -63,11 +63,26 @@ def run_txt_creation_task(target_dir, log_func, progress_bar, root, batch_size=0
                     outfile.write("\n\n")
                     
                     count += 1
-                    # 更新进度
-                    progress_bar.emit(int(count / total_files * 100))
+                    # 更新进度，支持不同类型的进度回调
+                    try:
+                        # 尝试PyQt的信号方式（progress_bar是信号对象）
+                        progress_bar.emit(int(count / total_files * 100))
+                    except AttributeError:
+                        try:
+                            # 尝试直接调用方式（progress_bar是emit方法本身）
+                            progress_bar(int(count / total_files * 100))
+                        except Exception as e:
+                            pass
             log_func(f"📄 已生成: {os.path.join('txt', out_name).replace('/', '\\')}")
         except Exception as e:
             log_func(f"❌ 写入失败 {out_name}: {e}")
 
-    progress_bar.emit(0)
+    # 重置进度条
+    try:
+        progress_bar.emit(0)
+    except AttributeError:
+        try:
+            progress_bar(0)
+        except Exception as e:
+            pass
 

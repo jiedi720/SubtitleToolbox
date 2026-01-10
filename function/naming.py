@@ -47,7 +47,8 @@ def clean_filename_title(filename):
         r'WEB.?DL', r'WEB.?Rip', r'BluRay', r'HDTV', r'H\.?264', r'H\.?265', 
         r'x264', r'x265', r'HEVC', r'AAC', r'AC3', r'E\.?AC3', r'DDP', r'5\.1', 
         r'Netflix', r'NF', r'AMZN', r'DSNP', r'Subs', r'Repack', r'Proper', 
-        r'TC', r'CMCTV', r'text', r'track\d+', r'FRDS', r'\[kor\]', r'\[chi\]', r'\[cht\]'
+        r'TC', r'CMCTV', r'text', r'track\d+', r'FRDS', r'\[kor\]', r'\[chi\]', r'\[cht\]',
+        r'\bwhisper\b'  # 添加whisper到垃圾词列表
     ]
     for junk in junk_words: 
         clean_name = re.sub(junk, '', clean_name, flags=re.IGNORECASE)
@@ -77,6 +78,7 @@ def generate_output_name(filenames, ext=".docx", volume_pattern="智能"):
     - 整季模式: All.of.Us.Are.Dead.S01.pdf
     - 单集模式: All.of.Us.Are.Dead.S01E01.pdf
     - 电影文件: Kingdom.Ashin.of.the.North.pdf
+    - 无剧集编号的整季文件: Korean.Grammar.in.Use.Be.Jp.pdf
     
     Args:
         filenames: 文件名列表
@@ -86,7 +88,7 @@ def generate_output_name(filenames, ext=".docx", volume_pattern="智能"):
     Returns:
         str: 生成的输出文件名
     """
-    if not filenames: 
+    if not filenames:
         return f"merged_output{ext}"
     
     basenames = [os.path.basename(f) for f in filenames]
@@ -111,14 +113,39 @@ def generate_output_name(filenames, ext=".docx", volume_pattern="智能"):
     parsed_files.sort(key=lambda x: (x['s'], x['e']))
     first, last = parsed_files[0], parsed_files[-1]
     
-    # 1. 从第一集提取带 S01E01 的完整标题
-    full_title = clean_filename_title(basenames[0])
+    # 1. 检查是否有剧集编号
+    has_episode_number = any(p['s'] != 999 for p in parsed_files)
     
-    # 2. 切除标题里的集数部分，保留系列名
-    series_only = re.sub(r'[._\s]S\d{1,2}[Ee]\d{1,3}.*', '', full_title, flags=re.IGNORECASE).strip()
+    # 2. 如果没有剧集编号，提取文件的共有名称
+    common_prefix = None
+    if not has_episode_number:
+        # 提取文件名的基础名称（不含扩展名）
+        base_names = [os.path.splitext(fname)[0] for fname in basenames]
+        if base_names:
+            # 找到最长的共有前缀
+            common_prefix = os.path.commonprefix(base_names)
+            # 清理共有前缀，去除末尾的分隔符和不需要的字符串
+            common_prefix = re.sub(r'[._-]+$', '', common_prefix)
+            # 移除不需要的字符串，如whisper和[kor]
+            junk_patterns = [r'\.whisper', r'\[kor\]', r'\[chi\]', r'\[cht\]']
+            for pattern in junk_patterns:
+                common_prefix = re.sub(pattern, '', common_prefix, flags=re.IGNORECASE)
+            # 再次清理，确保没有多余的分隔符
+            common_prefix = re.sub(r'[._-]+$', '', common_prefix)
     
-    # 3. 转成点号连接格式
-    final_prefix = series_only.replace(' ', '.')
+    # 3. 如果没有共有前缀，使用传统方式处理
+    if not common_prefix:
+        # 从第一集提取带 S01E01 的完整标题
+        full_title = clean_filename_title(basenames[0])
+        
+        # 切除标题里的集数部分，保留系列名
+        series_only = re.sub(r'[._\s]S\d{1,2}[Ee]\d{1,3}.*', '', full_title, flags=re.IGNORECASE).strip()
+        
+        # 转成点号连接格式
+        final_prefix = series_only.replace(' ', '.')
+    else:
+        # 使用共有前缀作为最终前缀
+        final_prefix = common_prefix.replace(' ', '.')
 
     if first['s'] == 999:
         # 电影文件或没有集数信息的文件：只显示标题

@@ -24,6 +24,7 @@ except ImportError:
 from function.file_utils import get_organized_path, get_save_path, find_files_recursively
 from function.parsers import parse_subtitle_to_list
 from function.naming import generate_output_name, clean_filename_title
+from function.volumes import smart_group_files
 
 def run_word_creation_task(target_dir, log_func, progress_bar, root, batch_size=0, output_dir=None, volume_pattern="智能"):
     """运行Word文档生成任务
@@ -95,12 +96,29 @@ def run_word_creation_task(target_dir, log_func, progress_bar, root, batch_size=
                         p.add_run(text)
 
                 count += 1
-                progress_bar.emit(int(count / total_files * 100))
+                # 更新进度，支持不同类型的进度回调
+                try:
+                    # 尝试PyQt的信号方式（progress_bar是信号对象）
+                    progress_bar.emit(int(count / total_files * 100))
+                except AttributeError:
+                    try:
+                        # 尝试直接调用方式（progress_bar是emit方法本身）
+                        progress_bar(int(count / total_files * 100))
+                    except Exception as e:
+                        pass
             
+            # 保存文档
             doc.save(out_path)
             log_func(f"📄 已生成: {os.path.join('word', out_name).replace('/', '\\')}", tag="word_blue")
         except Exception as e: 
-            log_func(f"❌ 失败: {e}")
+            log_func(f"❌ 生成失败: {e}")
     
-    progress_bar.emit(0)
+    # 重置进度条
+    try:
+        progress_bar.emit(0)
+    except AttributeError:
+        try:
+            progress_bar(0)
+        except Exception as e:
+            pass
 

@@ -91,11 +91,14 @@ class BaseController(QObject):
         current_mode = getattr(self, 'task_mode', None)
         
         if current_mode == "AutoSub":
-            # AutoSub 模式：只删除 .whisper.[].srt 文件
+            # AutoSub 模式：只清理目标目录里生成的whisper字幕，不处理子文件夹
             self._delete_autosub_files(target_dir)
+        elif current_mode in ["Script", "Merge", "Srt2Ass"]:
+            # Script，Merge，Srt2Ass模式：只清理生成的文件，不要清理任何原始文件
+            clear_output_to_trash(target_dir, self.log, self.root, current_mode)
         else:
             # 其他模式：使用现有的清理功能
-            clear_output_to_trash(target_dir, self.log, self.root)
+            clear_output_to_trash(target_dir, self.log, self.root, current_mode)
     
     def _delete_autosub_files(self, target_dir):
         """删除 AutoSub 生成的 .whisper.[].srt 文件
@@ -110,13 +113,13 @@ class BaseController(QObject):
             self.log("[清理] ℹ️ 目录不存在。")
             return
         
-        # 查找所有 .whisper.[].srt 文件
+        # 查找目标目录中生成的whisper字幕，不处理子文件夹
         whisper_files = []
-        for root, dirs, files in os.walk(target_dir):
-            for file in files:
+        for file in os.listdir(target_dir):
+            file_path = os.path.join(target_dir, file)
+            if os.path.isfile(file_path):
                 # 匹配 .whisper.[xxx].srt 格式
                 if re.search(r'\.whisper\.\[[^\]]+\]\.srt$', file, re.IGNORECASE):
-                    file_path = os.path.join(root, file)
                     whisper_files.append(file_path)
         
         if not whisper_files:
@@ -140,12 +143,12 @@ class BaseController(QObject):
             try:
                 send2trash(file_path)
                 deleted_count += 1
-                relative_path = os.path.relpath(file_path, target_dir)
+                relative_path = os.path.basename(file_path)
                 self.log(f"🗑️ 已删除: {relative_path}")
             except Exception as e:
                 error_count += 1
-                relative_path = os.path.relpath(file_path, target_dir)
-                self.log(f"❌ 删除失败: {relative_path} ({e})", "error")
+                relative_path = os.path.basename(file_path)
+                self.log(f"❌ 删除失败: {relative_path} ({e})")
         
         # 汇总
         if deleted_count > 0:
