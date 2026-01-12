@@ -29,45 +29,37 @@ def smart_group_files(file_paths, max_batch_size):
     """
     if not file_paths: return []
     
-    # 按剧集名称进行归类
-    series_dict = {}
-    for f in file_paths:
-        series_key = get_series_name(f)
-        if series_key not in series_dict: 
-            series_dict[series_key] = []
-        series_dict[series_key].append(f)
-    
+    # 修复：直接处理所有文件，不按剧集名称分组
+    # 这解决了日语教材文件名（如01.xxx.docx）被单独分组的问题
+    files = sorted(file_paths)
+    total = len(files)
     final_groups = []
-    # 按照剧集名称排序处理
-    for key in sorted(series_dict.keys()):
-        files = sorted(series_dict[key])
-        total = len(files)
+    
+    # 如果不限制每包大小，则全部放入一组
+    if max_batch_size <= 0:
+        final_groups.append(files)
+        return final_groups
+    
+    # 核心平摊算法
+    # 1. 计算总共需要分成几个组
+    num_groups = math.ceil(total / max_batch_size)
+    
+    # 2. 计算每组的基础大小和多出来的余数
+    base_size = total // num_groups
+    remainder = total % num_groups
+    
+    # 3. 分配文件到各组
+    start = 0
+    for i in range(num_groups):
+        # 如果当前组的索引小于余数，则该组分配 (base_size + 1) 集
+        current_batch_size = base_size + (1 if i < remainder else 0)
+        end = start + current_batch_size
         
-        # 如果不限制每包大小，则全部放入一组
-        if max_batch_size <= 0:
-            final_groups.append(files)
-            continue
+        batch = files[start:end]
+        if batch:
+            final_groups.append(batch)
+        start = end
         
-        # 核心平摊算法
-        # 1. 计算总共需要分成几个组
-        num_groups = math.ceil(total / max_batch_size)
-        
-        # 2. 计算每组的基础大小和多出来的余数
-        base_size = total // num_groups
-        remainder = total % num_groups
-        
-        # 3. 分配文件到各组
-        start = 0
-        for i in range(num_groups):
-            # 如果当前组的索引小于余数，则该组分配 (base_size + 1) 集
-            current_batch_size = base_size + (1 if i < remainder else 0)
-            end = start + current_batch_size
-            
-            batch = files[start:end]
-            if batch:
-                final_groups.append(batch)
-            start = end
-            
     return final_groups
 
 

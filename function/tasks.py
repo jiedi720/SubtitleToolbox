@@ -84,14 +84,25 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
         elif task_mode == "Script":
             # 根据分卷模式获取batch_size
             batch = 0
-            volume_pattern = '智能'
-            if hasattr(gui, 'app') and hasattr(gui.app, 'volume_pattern'):
-                batch = get_batch_size_from_volume_pattern(gui.app.volume_pattern)
+            volume_pattern = '智能'  # 默认值
+            
+            # 修复：直接从GUI控件获取当前选中的分卷模式，这是最可靠的方式
+            if hasattr(gui, 'VolumePatternSelect'):
+                # 直接从GUI控件获取当前选中的分卷模式
+                mode_map = {
+                    0: "整季",
+                    1: "智能",
+                    2: "单集"
+                }
+                volume_pattern = mode_map.get(gui.VolumePatternSelect.currentIndex(), "智能")
+                batch = get_batch_size_from_volume_pattern(volume_pattern)
+            # 旧的获取方式作为备选
+            elif hasattr(gui, 'app') and hasattr(gui.app, 'volume_pattern'):
                 volume_pattern = gui.app.volume_pattern
+                batch = get_batch_size_from_volume_pattern(volume_pattern)
             elif hasattr(gui, 'volume_pattern'):
-                # 兼容旧版代码
-                batch = get_batch_size_from_volume_pattern(gui.volume_pattern)
                 volume_pattern = gui.volume_pattern
+                batch = get_batch_size_from_volume_pattern(volume_pattern)
             
             # 执行各类输出任务
             if gui.Output2PDF.isChecked():

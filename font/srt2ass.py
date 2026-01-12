@@ -62,7 +62,7 @@ def get_config_styles(log_func=None):
     
     return styles
 
-def run_ass_task(target_dir, styles, log_func, progress_bar, root, output_dir=None, stop_flag=False):
+def run_ass_task(target_dir, styles, log_func, progress_bar, root, output_dir=None, stop_flag=[False]):
     """
     运行SRT转ASS转换任务
     
