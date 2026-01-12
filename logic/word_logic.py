@@ -26,7 +26,7 @@ from function.parsers import parse_subtitle_to_list
 from function.naming import generate_output_name, clean_filename_title
 from function.volumes import smart_group_files
 
-def run_word_creation_task(target_dir, log_func, progress_bar, root, batch_size=0, output_dir=None, volume_pattern="智能"):
+def run_word_creation_task(target_dir, log_func, progress_bar, root, batch_size=0, output_dir=None, volume_pattern="智能", stop_flag=False):
     """运行Word文档生成任务
     
     从指定目录扫描字幕文件，生成带时间戳的Word文档。
@@ -58,6 +58,10 @@ def run_word_creation_task(target_dir, log_func, progress_bar, root, batch_size=
     base_output_dir = output_dir if output_dir else target_dir
 
     for group in file_groups:
+        # 检查停止标志
+        if stop_flag[0]:
+            return
+            
         if not group: 
             continue
         
@@ -69,6 +73,11 @@ def run_word_creation_task(target_dir, log_func, progress_bar, root, batch_size=
         try:
             doc = Document()
             for i, fp in enumerate(group):
+                # 检查停止标志
+                if stop_flag:
+                    log_func("⚠️ 任务已被用户停止")
+                    return
+                    
                 title_text = clean_filename_title(os.path.basename(fp))
                 section = doc.sections[0] if i == 0 else doc.add_section()
                 section.top_margin = section.bottom_margin = Mm(25)
@@ -89,6 +98,11 @@ def run_word_creation_task(target_dir, log_func, progress_bar, root, batch_size=
                     doc.add_paragraph("[无对白内容]")
                 else:
                     for time_str, text in content_list:
+                        # 检查停止标志
+                        if stop_flag:
+                            log_func("⚠️ 任务已被用户停止")
+                            return
+                            
                         p = doc.add_paragraph()
                         p.paragraph_format.space_after = Pt(4)
                         run = p.add_run(f"[{time_str}]  ")

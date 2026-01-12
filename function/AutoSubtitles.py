@@ -204,7 +204,7 @@ class SubtitleGenerator:
         else:
             print("DEBUG: cleanup - model 为 None，无需清理")
 
-    def generate_subtitle(self, audio_file, log_callback=None, progress_callback=None):
+    def generate_subtitle(self, audio_file, log_callback=None, progress_callback=None, stop_flag=None):
         """
         为单个音频文件生成字幕
 
@@ -250,6 +250,10 @@ class SubtitleGenerator:
             # 遍历segments，收集所有片段
             # 在遍历过程中更新进度条（使用动画效果）
             for segment in segments:
+                # 检查停止标志
+                if stop_flag and stop_flag[0]:
+                    return None
+                    
                 segments_list.append(segment)
                 segment_count += 1
 
@@ -402,7 +406,7 @@ class SubtitleGenerator:
                 log_callback(f"❌ 写入字幕文件失败: {str(e)}")
             raise
     
-    def batch_process(self, input_dir, progress_callback=None, log_callback=None, skip_existing=True):
+    def batch_process(self, input_dir, progress_callback=None, log_callback=None, skip_existing=True, stop_flag=None):
         """
         批量处理音频文件，生成字幕
         
@@ -486,6 +490,10 @@ class SubtitleGenerator:
             animation_counter = 0
 
             for idx, media_file in enumerate(all_files):
+                # 检查停止标志
+                if stop_flag and stop_flag[0]:
+                    break
+                    
                 base_name = os.path.splitext(os.path.basename(media_file))[0]
                 dir_name = os.path.dirname(media_file)
 
@@ -533,7 +541,14 @@ class SubtitleGenerator:
                 file_progress_callback = create_animation_progress_callback()
 
                 try:
-                    output_file = self.generate_subtitle(media_file, log_callback, file_progress_callback)
+                    output_file = self.generate_subtitle(media_file, log_callback, file_progress_callback, stop_flag)
+                    if output_file is None:
+                        # 任务已停止
+                        results.append((media_file, None, False))
+                        if log_callback:
+                            log_callback("⚠️ 任务已停止，未生成字幕文件")
+                        break
+                    
                     results.append((media_file, output_file, True))
 
                     if log_callback:

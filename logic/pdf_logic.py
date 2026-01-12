@@ -270,7 +270,7 @@ class MyDocTemplate(SimpleDocTemplate):
         c.line(20*mm, page_height - 18*mm, page_width - 20*mm, page_height - 18*mm)
         c.restoreState()
 
-def run_pdf_task(target_dir, log_func, progress_bar, root, batch_size=0, output_dir=None, volume_pattern="智能"):
+def run_pdf_task(target_dir, log_func, progress_bar, root, batch_size=0, output_dir=None, volume_pattern="智能", stop_flag=False):
     """运行PDF文档生成任务
     
     从指定目录扫描字幕文件，生成带时间戳和目录的PDF文档。
@@ -334,6 +334,10 @@ def run_pdf_task(target_dir, log_func, progress_bar, root, batch_size=0, output_
     base_output_dir = output_dir if output_dir else target_dir
 
     for group in file_groups:
+        # 检查停止标志
+        if stop_flag[0]:
+            return
+            
         if not group: 
             continue
         
@@ -366,6 +370,11 @@ def run_pdf_task(target_dir, log_func, progress_bar, root, batch_size=0, output_
             story = [Bookmark("TOC"), OutlineEntry("Content", "TOC"), Paragraph("Content", toc_h), toc, TOCFinished(), PageBreak()]
             
             for i, fp in enumerate(group):
+                # 检查停止标志
+                if stop_flag:
+                    log_func("⚠️ 任务已被用户停止")
+                    return
+                    
                 clean_title = clean_filename_title(os.path.basename(fp))
                 story.append(SetHeaderTitle(clean_title))
                 if i > 0: 
@@ -390,6 +399,11 @@ def run_pdf_task(target_dir, log_func, progress_bar, root, batch_size=0, output_
                     story.append(Paragraph("<i>[无对白]</i>", body))
                 else:
                     for time_str, text in content_list:
+                        # 检查停止标志
+                        if stop_flag:
+                            log_func("⚠️ 任务已被用户停止")
+                            return
+                            
                         safe_text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
                         # 根据文本内容选择合适的字体
                         font_name = detect_font_for_text(text)

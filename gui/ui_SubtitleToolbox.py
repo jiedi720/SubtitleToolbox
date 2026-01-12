@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'SubtitleToolboxOFfYev.ui'
+## Form generated from reading UI file 'SubtitleToolboxQazqTK.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.10.1
 ##
@@ -82,9 +82,9 @@ class Ui_SubtitleToolbox(object):
 "QTabWidget > QWidget {\n"
 "    background-color: transparent;\n"
 "}")
-        self.verticalLayout_7 = QVBoxLayout(self.centralwidget)
-        self.verticalLayout_7.setSpacing(10)
-        self.verticalLayout_7.setObjectName(u"verticalLayout_7")
+        self.verticalLayout_5 = QVBoxLayout(self.centralwidget)
+        self.verticalLayout_5.setSpacing(10)
+        self.verticalLayout_5.setObjectName(u"verticalLayout_5")
         self.PathLayout = QHBoxLayout()
         self.PathLayout.setSpacing(1)
         self.PathLayout.setObjectName(u"PathLayout")
@@ -388,12 +388,11 @@ class Ui_SubtitleToolbox(object):
         self.PathLayout.addLayout(self.PathButton)
 
 
-        self.verticalLayout_7.addLayout(self.PathLayout)
+        self.verticalLayout_5.addLayout(self.PathLayout)
 
-        self.horizontalLayout_7 = QHBoxLayout()
-        self.horizontalLayout_7.setSpacing(10)
-        self.horizontalLayout_7.setObjectName(u"horizontalLayout_7")
-        self.horizontalLayout_7.setContentsMargins(11, -1, 11, -1)
+        self.horizontalLayout = QHBoxLayout()
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.horizontalLayout.setContentsMargins(11, -1, 11, -1)
         self.Function = QTabWidget(self.centralwidget)
         self.Function.setObjectName(u"Function")
         sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -1382,18 +1381,16 @@ class Ui_SubtitleToolbox(object):
 
         self.Function.addTab(self.AutoSub, "")
 
-        self.horizontalLayout_7.addWidget(self.Function)
+        self.horizontalLayout.addWidget(self.Function)
 
-        self.verticalLayout_5 = QVBoxLayout()
-        self.verticalLayout_5.setSpacing(10)
-        self.verticalLayout_5.setObjectName(u"verticalLayout_5")
-        self.verticalLayout_5.setContentsMargins(0, -1, -1, -1)
+        self.gridLayout_2 = QGridLayout()
+        self.gridLayout_2.setObjectName(u"gridLayout_2")
         self.Start = QPushButton(self.centralwidget)
         self.Start.setObjectName(u"Start")
         sizePolicy2.setHeightForWidth(self.Start.sizePolicy().hasHeightForWidth())
         self.Start.setSizePolicy(sizePolicy2)
-        self.Start.setMinimumSize(QSize(0, 60))
-        self.Start.setMaximumSize(QSize(300, 60))
+        self.Start.setMinimumSize(QSize(0, 55))
+        self.Start.setMaximumSize(QSize(16777215, 55))
         font13 = QFont()
         font13.setPointSize(12)
         font13.setWeight(QFont.DemiBold)
@@ -1429,54 +1426,16 @@ class Ui_SubtitleToolbox(object):
         self.Start.setCheckable(False)
         self.Start.setChecked(False)
 
-        self.verticalLayout_5.addWidget(self.Start)
+        self.gridLayout_2.addWidget(self.Start, 0, 0, 1, 1)
 
-        self.horizontalLayout = QHBoxLayout()
-        self.horizontalLayout.setSpacing(10)
-        self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.horizontalLayout.setSizeConstraint(QLayout.SizeConstraint.SetDefaultConstraint)
-        self.ClearLogs = QPushButton(self.centralwidget)
-        self.ClearLogs.setObjectName(u"ClearLogs")
-        sizePolicy6 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        sizePolicy6.setHorizontalStretch(0)
-        sizePolicy6.setVerticalStretch(0)
-        sizePolicy6.setHeightForWidth(self.ClearLogs.sizePolicy().hasHeightForWidth())
-        self.ClearLogs.setSizePolicy(sizePolicy6)
-        self.ClearLogs.setMinimumSize(QSize(0, 50))
-        self.ClearLogs.setMaximumSize(QSize(16777215, 50))
-        self.ClearLogs.setStyleSheet(u"/* \u6309\u94ae\u9ed8\u8ba4\u6837\u5f0f */\n"
-"QPushButton {\n"
-"    color: rgb(0, 0, 0);\n"
-"    background-color: #ffde7d;\n"
-"    border-radius: 9px;\n"
-"    padding: 5px 15px;\n"
-"    border: none;\n"
-"}\n"
-"\n"
-"/* \u60ac\u6d6e\u7279\u6548\uff1a\u80cc\u666f\u989c\u8272\u53d8\u6d45\uff0c\u5e76\u589e\u52a0\u84dd\u8272\u8fb9\u6846\u611f */\n"
-"QPushButton:hover {\n"
-"    background-color: rgb(255, 234, 152); /* \u989c\u8272\u6bd4\u9ed8\u8ba4\u7a0d\u4eae */\n"
-"}\n"
-"\n"
-"/* \u6309\u4e0b\u7279\u6548\uff1a\u70b9\u51fb\u65f6\u989c\u8272\u53d8\u6df1\uff0c\u4ea7\u751f\u7269\u7406\u538b\u4e0b\u7684\u9519\u89c9 */\n"
-"QPushButton:pressed {\n"
-"    padding-top: 8px;\n"
-"}\n"
-"")
-        icon10 = QIcon()
-        icon10.addFile(u"icons/broom.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
-        self.ClearLogs.setIcon(icon10)
-        self.ClearLogs.setIconSize(QSize(40, 40))
-
-        self.horizontalLayout.addWidget(self.ClearLogs)
-
-        self.DeleteFiles = QPushButton(self.centralwidget)
-        self.DeleteFiles.setObjectName(u"DeleteFiles")
-        sizePolicy6.setHeightForWidth(self.DeleteFiles.sizePolicy().hasHeightForWidth())
-        self.DeleteFiles.setSizePolicy(sizePolicy6)
-        self.DeleteFiles.setMinimumSize(QSize(0, 50))
-        self.DeleteFiles.setMaximumSize(QSize(16777215, 50))
-        self.DeleteFiles.setStyleSheet(u"/* \u6309\u94ae\u9ed8\u8ba4\u6837\u5f0f */\n"
+        self.Stop = QPushButton(self.centralwidget)
+        self.Stop.setObjectName(u"Stop")
+        sizePolicy2.setHeightForWidth(self.Stop.sizePolicy().hasHeightForWidth())
+        self.Stop.setSizePolicy(sizePolicy2)
+        self.Stop.setMinimumSize(QSize(0, 55))
+        self.Stop.setMaximumSize(QSize(16777215, 55))
+        self.Stop.setFont(font13)
+        self.Stop.setStyleSheet(u"/* \u6309\u94ae\u9ed8\u8ba4\u6837\u5f0f */\n"
 "QPushButton {\n"
 "color: rgb(0, 0, 0);\n"
 "background-color: #f6416c;\n"
@@ -1498,23 +1457,94 @@ class Ui_SubtitleToolbox(object):
 "    /* 3. \u5f3a\u5236\u5185\u5bb9\u6c34\u5e73\u5782\u76f4\u5c45\u4e2d\uff0c\u9632\u6b62\u5bf9\u9f50\u65b9\u5f0f\u5e72\u6270 */\n"
 "    text-align: center;\n"
 "}")
+        icon10 = QIcon()
+        icon10.addFile(u"Icons/stop.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.Stop.setIcon(icon10)
+        self.Stop.setIconSize(QSize(30, 30))
+        self.Stop.setCheckable(False)
+        self.Stop.setChecked(False)
+
+        self.gridLayout_2.addWidget(self.Stop, 0, 1, 1, 1)
+
+        self.ClearLogs = QPushButton(self.centralwidget)
+        self.ClearLogs.setObjectName(u"ClearLogs")
+        sizePolicy6 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        sizePolicy6.setHorizontalStretch(0)
+        sizePolicy6.setVerticalStretch(0)
+        sizePolicy6.setHeightForWidth(self.ClearLogs.sizePolicy().hasHeightForWidth())
+        self.ClearLogs.setSizePolicy(sizePolicy6)
+        self.ClearLogs.setMinimumSize(QSize(0, 55))
+        self.ClearLogs.setMaximumSize(QSize(16777215, 55))
+        self.ClearLogs.setStyleSheet(u"/* \u6309\u94ae\u9ed8\u8ba4\u6837\u5f0f */\n"
+"QPushButton {\n"
+"    color: rgb(0, 0, 0);\n"
+"    background-color: #f8f3d4;\n"
+"    border-radius: 9px;\n"
+"    padding: 5px 15px;\n"
+"    border: none;\n"
+"}\n"
+"\n"
+"/* \u60ac\u6d6e\u7279\u6548\uff1a\u80cc\u666f\u989c\u8272\u53d8\u6d45\uff0c\u5e76\u589e\u52a0\u84dd\u8272\u8fb9\u6846\u611f */\n"
+"QPushButton:hover {\n"
+"    background-color: rgb(218, 213, 186); /* \u989c\u8272\u6bd4\u9ed8\u8ba4\u7a0d\u4eae */\n"
+"}\n"
+"\n"
+"/* \u6309\u4e0b\u7279\u6548\uff1a\u70b9\u51fb\u65f6\u989c\u8272\u53d8\u6df1\uff0c\u4ea7\u751f\u7269\u7406\u538b\u4e0b\u7684\u9519\u89c9 */\n"
+"QPushButton:pressed {\n"
+"    padding-top: 8px;\n"
+"}\n"
+"\n"
+"")
         icon11 = QIcon()
-        icon11.addFile(u"icons/delete.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
-        self.DeleteFiles.setIcon(icon11)
+        icon11.addFile(u"icons/broom.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.ClearLogs.setIcon(icon11)
+        self.ClearLogs.setIconSize(QSize(40, 40))
+
+        self.gridLayout_2.addWidget(self.ClearLogs, 1, 0, 1, 1)
+
+        self.DeleteFiles = QPushButton(self.centralwidget)
+        self.DeleteFiles.setObjectName(u"DeleteFiles")
+        sizePolicy6.setHeightForWidth(self.DeleteFiles.sizePolicy().hasHeightForWidth())
+        self.DeleteFiles.setSizePolicy(sizePolicy6)
+        self.DeleteFiles.setMinimumSize(QSize(0, 55))
+        self.DeleteFiles.setMaximumSize(QSize(16777215, 55))
+        self.DeleteFiles.setStyleSheet(u"/* \u6309\u94ae\u9ed8\u8ba4\u6837\u5f0f */\n"
+"QPushButton {\n"
+"    color: rgb(0, 0, 0);\n"
+"    background-color: #ffde7d;\n"
+"    border-radius: 9px;\n"
+"    padding: 5px 15px;\n"
+"    border: none;\n"
+"}\n"
+"\n"
+"/* \u60ac\u6d6e\u7279\u6548\uff1a\u80cc\u666f\u989c\u8272\u53d8\u6d45\uff0c\u5e76\u589e\u52a0\u84dd\u8272\u8fb9\u6846\u611f */\n"
+"QPushButton:hover {\n"
+"    background-color: rgb(255, 234, 152); /* \u989c\u8272\u6bd4\u9ed8\u8ba4\u7a0d\u4eae */\n"
+"}\n"
+"\n"
+"/* \u6309\u4e0b\u7279\u6548\uff1a\u70b9\u51fb\u65f6\u989c\u8272\u53d8\u6df1\uff0c\u4ea7\u751f\u7269\u7406\u538b\u4e0b\u7684\u9519\u89c9 */\n"
+"QPushButton:pressed {\n"
+"    padding-top: 8px;\n"
+"}\n"
+"\n"
+"\n"
+"")
+        icon12 = QIcon()
+        icon12.addFile(u"icons/delete.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.DeleteFiles.setIcon(icon12)
         self.DeleteFiles.setIconSize(QSize(30, 30))
 
-        self.horizontalLayout.addWidget(self.DeleteFiles)
+        self.gridLayout_2.addWidget(self.DeleteFiles, 1, 1, 1, 1)
 
-        self.horizontalLayout.setStretch(0, 1)
-        self.horizontalLayout.setStretch(1, 1)
+        self.gridLayout_2.setRowStretch(0, 1)
+        self.gridLayout_2.setRowStretch(1, 1)
+        self.gridLayout_2.setColumnStretch(0, 1)
+        self.gridLayout_2.setColumnStretch(1, 1)
+
+        self.horizontalLayout.addLayout(self.gridLayout_2)
+
 
         self.verticalLayout_5.addLayout(self.horizontalLayout)
-
-
-        self.horizontalLayout_7.addLayout(self.verticalLayout_5)
-
-
-        self.verticalLayout_7.addLayout(self.horizontalLayout_7)
 
         self.verticalLayout_Log = QVBoxLayout()
         self.verticalLayout_Log.setSpacing(10)
@@ -1616,7 +1646,7 @@ class Ui_SubtitleToolbox(object):
         self.verticalLayout_Log.addWidget(self.Log)
 
 
-        self.verticalLayout_7.addLayout(self.verticalLayout_Log)
+        self.verticalLayout_5.addLayout(self.verticalLayout_Log)
 
         SubtitleToolbox.setCentralWidget(self.centralwidget)
         self.menuBar = QMenuBar(SubtitleToolbox)
@@ -1800,6 +1830,10 @@ class Ui_SubtitleToolbox(object):
         self.Start.setToolTip(QCoreApplication.translate("SubtitleToolbox", u"\u5f00\u59cb\u5904\u7406", None))
 #endif // QT_CONFIG(tooltip)
         self.Start.setText("")
+#if QT_CONFIG(tooltip)
+        self.Stop.setToolTip(QCoreApplication.translate("SubtitleToolbox", u"\u505c\u6b62\u5904\u7406", None))
+#endif // QT_CONFIG(tooltip)
+        self.Stop.setText("")
 #if QT_CONFIG(tooltip)
         self.ClearLogs.setToolTip(QCoreApplication.translate("SubtitleToolbox", u"\u6e05\u7a7a\u65e5\u5fd7", None))
 #endif // QT_CONFIG(tooltip)

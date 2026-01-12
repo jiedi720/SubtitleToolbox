@@ -49,6 +49,12 @@ class BaseController(QObject):
         
         # 用于存储用户选择（是否跳过已存在的文件）
         self.skip_existing = True
+        
+        # 添加任务状态标志
+        self.is_running = False  # 任务是否正在运行
+        
+        # 添加停止标志（使用列表作为可变对象，方便线程间共享）
+        self.stop_flag = [False]
 
     def load_settings(self):
         """从配置文件加载设置"""
@@ -164,6 +170,16 @@ class BaseController(QObject):
             dict: 包含模型大小和模型路径的字典
         """
         return self.config.get_whisper_model_config()
+    
+    def stop_task(self):
+        """
+        停止当前任务
+        """
+        if self.is_running:
+            self.log("⚠️ 正在停止当前任务...")
+            self.stop_flag[0] = True
+        # 重置进度条
+        self.update_progress.emit(0)
 
 
 class UIController:
@@ -245,6 +261,8 @@ class TaskController:
         # 更新GUI状态：禁用开始按钮，重置进度条
         self.enable_start_button.emit(False)
         self.update_progress.emit(0)
+        # 重置停止标志
+        self.stop_flag[0] = False
 
         # 在子线程中执行任务，避免阻塞主线程
         # 不使用 daemon=True，让线程正常结束
@@ -257,6 +275,7 @@ class TaskController:
         """在线程中运行任务"""
         import os  # 将 import 移到函数开头
         success = False
+        self.is_running = True  # 任务开始，设置为运行状态
         try:
             # 根据任务模式显示不同的启动信息
             self.log(f"----- {self.task_mode} 任务启动 -----")
@@ -269,7 +288,8 @@ class TaskController:
                 progress_callback=self.update_progress.emit,
                 root=self.root,
                 gui=self.gui,
-                _get_current_styles=self._get_current_styles
+                _get_current_styles=self._get_current_styles,
+                stop_flag=self.stop_flag  # 传递停止标志列表（可变对象）
             )
             if success is None:
                 success = True
@@ -279,6 +299,7 @@ class TaskController:
             self.log(f"❌ 任务执行异常: {e}")
             self.log(f"详细错误: {traceback.format_exc()}")
         finally:
+            self.is_running = False  # 任务结束，设置为非运行状态
             try:
                 # 使用信号在主线程中恢复GUI状态
                 if hasattr(self, 'enable_start_button'):

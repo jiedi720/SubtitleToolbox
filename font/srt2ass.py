@@ -62,8 +62,9 @@ def get_config_styles(log_func=None):
     
     return styles
 
-def run_ass_task(target_dir, styles, log_func, progress_bar, root, output_dir=None):
-    """运行SRT转ASS转换任务
+def run_ass_task(target_dir, styles, log_func, progress_bar, root, output_dir=None, stop_flag=False):
+    """
+    运行SRT转ASS转换任务
     
     扫描目标目录，匹配双语字幕文件，转换为ASS格式，并归档原始SRT文件。
     
@@ -74,6 +75,7 @@ def run_ass_task(target_dir, styles, log_func, progress_bar, root, output_dir=No
         progress_bar: 进度条信号
         root: 根窗口
         output_dir: 输出目录（可选）
+        stop_flag: 停止标志
     """
     # 路径自动纠偏
     if log_func: 
@@ -151,6 +153,10 @@ def run_ass_task(target_dir, styles, log_func, progress_bar, root, output_dir=No
     base_output = output_dir if output_dir else target_dir
     
     for i, t in enumerate(tasks):
+        # 检查停止标志
+        if stop_flag[0]:
+            return
+        
         try:
             # 加载与清洗字幕文件
             s1, s2 = pysubs2.load(t["oth_path"]), pysubs2.load(t["chi_path"])
@@ -158,6 +164,10 @@ def run_ass_task(target_dir, styles, log_func, progress_bar, root, output_dir=No
             
             # 处理韩语字幕
             for l in s1:
+                # 检查停止标志
+                if stop_flag[0]:
+                    return
+                    
                 c = clean_subtitle_text_ass(l.text)
                 if c:
                     st = pysubs2.time.ms_to_str(l.start, fractions=True).replace(',','.')[:-1]
@@ -166,6 +176,10 @@ def run_ass_task(target_dir, styles, log_func, progress_bar, root, output_dir=No
             
             # 处理中文字幕
             for l in s2:
+                # 检查停止标志
+                if stop_flag[0]:
+                    return
+                    
                 c = clean_subtitle_text_ass(l.text)
                 if c:
                     st = pysubs2.time.ms_to_str(l.start, fractions=True).replace(',','.')[:-1]

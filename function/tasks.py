@@ -48,6 +48,8 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
         gui: GUI 对象
         **kwargs: 其他参数
     """
+    # 获取stop_flag（列表形式，[False]或[True]）
+    stop_flag = kwargs.get('stop_flag', [False])
     # 声明全局变量
     global _global_generator
     # 如果全局变量不存在，初始化它
@@ -76,7 +78,8 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
                 log_callback, 
                 progress_callback, 
                 root, 
-                output_dir=final_out
+                output_dir=final_out,
+                stop_flag=stop_flag
             )
         elif task_mode == "Script":
             # 根据分卷模式获取batch_size
@@ -99,7 +102,8 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
                     root, 
                     batch, 
                     final_out, 
-                    volume_pattern
+                    volume_pattern,
+                    stop_flag=stop_flag
                 )
             if gui.Output2Word.isChecked():
                 run_word_creation_task(
@@ -109,7 +113,8 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
                     root, 
                     batch, 
                     final_out, 
-                    volume_pattern
+                    volume_pattern,
+                    stop_flag=stop_flag
                 )
             if gui.Output2Txt.isChecked():
                 run_txt_creation_task(
@@ -119,7 +124,8 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
                     root, 
                     batch, 
                     final_out, 
-                    volume_pattern
+                    volume_pattern,
+                    stop_flag=stop_flag
                 )
         elif task_mode == "Merge":
             # 执行合并任务
@@ -142,7 +148,8 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
                         log_callback, 
                         progress_callback, 
                         root, 
-                        output_dir=final_out
+                        output_dir=final_out,
+                        stop_flag=stop_flag
                     )
                 
                 if merge_word:
@@ -151,7 +158,8 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
                         log_callback, 
                         progress_callback, 
                         root, 
-                        output_dir=final_out
+                        output_dir=final_out,
+                        stop_flag=stop_flag
                     )
                 
                 if merge_txt:
@@ -160,7 +168,8 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
                         log_callback, 
                         progress_callback, 
                         root, 
-                        output_dir=final_out
+                        output_dir=final_out,
+                        stop_flag=stop_flag
                     )
             except Exception as e:
                 log_callback(f"❌ Merge模式处理失败: {e}")
@@ -236,7 +245,8 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
                     input_dir=target_dir,
                     progress_callback=progress_callback,
                     log_callback=log_callback,
-                    skip_existing=skip_existing
+                    skip_existing=skip_existing,
+                    stop_flag=stop_flag
                 )
 
                 # 统计结果

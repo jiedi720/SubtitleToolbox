@@ -97,6 +97,7 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
             'Word.ico': [self.Output2Word, self.MergeWord],
             'txt.png': [self.Output2Txt, self.MergeTxt],
             'shuttle.png': [self.Start],
+            'stop.png': [self.Stop],
             'broom.png': [self.ClearLogs],
             'delete.png': [self.DeleteFiles],
         }
@@ -111,6 +112,7 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         
         # 主功能按钮
         self.Start.clicked.connect(self.app.start_thread)
+        self.Stop.clicked.connect(self.app.stop_task)
         self.ClearLogs.clicked.connect(self._clear_log)
         self.DeleteFiles.clicked.connect(self._delete_files)
         

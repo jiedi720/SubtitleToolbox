@@ -9,7 +9,7 @@ from function.volumes import smart_group_files
 from function.parsers import parse_subtitle_to_list
 from function.naming import generate_output_name, clean_filename_title
 
-def run_txt_creation_task(target_dir, log_func, progress_bar, root, batch_size=0, output_dir=None, volume_pattern="智能"):
+def run_txt_creation_task(target_dir, log_func, progress_bar, root, batch_size=0, output_dir=None, volume_pattern="智能", stop_flag=False):
     """运行TXT文档生成任务
     
     从指定目录扫描字幕文件，生成带时间戳的TXT文档。
@@ -39,6 +39,10 @@ def run_txt_creation_task(target_dir, log_func, progress_bar, root, batch_size=0
     base_output_dir = output_dir if output_dir else target_dir
 
     for group in file_groups:
+        # 检查停止标志
+        if stop_flag[0]:
+            return
+            
         if not group: 
             continue
         
@@ -50,6 +54,11 @@ def run_txt_creation_task(target_dir, log_func, progress_bar, root, batch_size=0
         try:
             with open(out_path, 'w', encoding='utf-8') as outfile:
                 for fp in group:
+                    # 检查停止标志
+                    if stop_flag:
+                        log_func("⚠️ 任务已被用户停止")
+                        return
+                        
                     title = clean_filename_title(os.path.basename(fp))
                     outfile.write(f"{'='*50}\n【{title}】\n{'='*50}\n\n")
                     
@@ -59,6 +68,11 @@ def run_txt_creation_task(target_dir, log_func, progress_bar, root, batch_size=0
                         outfile.write("[内容为空或解析失败]\n\n")
                     else:
                         for time_str, text in content_list:
+                            # 检查停止标志
+                            if stop_flag:
+                                log_func("⚠️ 任务已被用户停止")
+                                return
+                                
                             outfile.write(f"[{time_str}]  {text}\n")
                     outfile.write("\n\n")
                     
