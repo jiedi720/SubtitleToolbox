@@ -336,7 +336,7 @@ class TaskController:
     def _get_current_styles(self):
         """
         获取当前样式设置
-        
+
         Returns:
             dict: 包含外语字幕样式和中文字幕样式的字典
         """
@@ -344,17 +344,34 @@ class TaskController:
         lang_key_mapping = {
             "kor_chn": "kor",
             "jpn_chn": "jpn",
-            "eng_chn": "eng"
+            "eng_chn": "eng",
+            "kor_jpn": "kor"  # 韩日双语，韩语为外语键
         }
         lang_key = lang_key_mapping.get(self.ass_pattern, "kor")
-        
+
+        # 如果需要 jpn_parsed 但不存在，先刷新样式
+        if self.ass_pattern == "kor_jpn" and not hasattr(self, 'jpn_parsed'):
+            self.refresh_parsed_styles()
+
         if hasattr(self, 'kor_panel_ui'):
             # 如果有UI面板，从面板获取样式
-            lang_style = self.construct_style_line(self.kor_parsed["raw"], self.kor_panel_ui, lang_key.upper())
-            chn_style = self.construct_style_line(self.chn_parsed["raw"], self.chn_panel_ui, "CHN")
-            return {lang_key: lang_style, "chn": chn_style}
+            if self.ass_pattern == "kor_jpn":
+                # 韩日双语：返回 kor 和 jpn 样式
+                kor_style = self.construct_style_line(self.kor_parsed["raw"], self.kor_panel_ui, "KOR")
+                jpn_style = self.construct_style_line(self.jpn_parsed["raw"], self.kor_panel_ui, "JPN")
+                return {"kor": kor_style, "jpn": jpn_style}
+            else:
+                # 其他预设：返回外语和中文样式
+                lang_style = self.construct_style_line(self.kor_parsed["raw"], self.kor_panel_ui, lang_key.upper())
+                chn_style = self.construct_style_line(self.chn_parsed["raw"], self.chn_panel_ui, "CHN")
+                return {lang_key: lang_style, "chn": chn_style}
         # 否则返回解析后的默认样式
-        return {lang_key: self.kor_parsed["raw"], "chn": self.chn_parsed["raw"]}
+        if self.ass_pattern == "kor_jpn":
+            # 韩日双语：返回 kor 和 jpn 样式
+            return {"kor": self.kor_parsed["raw"], "jpn": self.jpn_parsed["raw"]}
+        else:
+            # 其他预设：返回外语和中文样式
+            return {lang_key: self.kor_parsed["raw"], "chn": self.chn_parsed["raw"]}
 
 
 class ToolController:
@@ -591,7 +608,8 @@ class UnifiedApp(BaseController, UIController, TaskController, ToolController):
             preset_mapping = {
                 "韩上中下": "kor_chn",
                 "日上中下": "jpn_chn",
-                "英上中下": "eng_chn"
+                "英上中下": "eng_chn",
+                "韩上日下": "kor_jpn"
             }
             self.ass_pattern = preset_mapping.get(current_ass_pattern, "kor_chn")
         if current_volume:

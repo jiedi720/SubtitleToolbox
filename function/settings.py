@@ -257,7 +257,8 @@ class ConfigManager:
         preset_mapping = {
             "韩上中下": "kor_chn",
             "日上中下": "jpn_chn",
-            "英上中下": "eng_chn"
+            "英上中下": "eng_chn",
+            "韩上日下": "kor_jpn"
         }
         self.ass_pattern = preset_mapping.get(ass_pattern_from_config, "kor_chn")
         
@@ -285,47 +286,71 @@ class ConfigManager:
 
     def _load_presets(self, data):
             """从配置数据中加载预设"""
-            required_presets = ["kor_chn", "jpn_chn", "eng_chn"]
-    
+            required_presets = ["kor_chn", "jpn_chn", "eng_chn", "kor_jpn"]
+
             # 定义每个预设对应的外语键名和默认样式
             lang_key_mapping = {
                 "kor_chn": ("kor", self.default_kor_raw),
                 "jpn_chn": ("jpn", self.default_jpn_raw),
-                "eng_chn": ("eng", self.default_eng_raw)
+                "eng_chn": ("eng", self.default_eng_raw),
+                "kor_jpn": ("kor", self.default_kor_raw)  # 韩日双语，使用kor作为主键
             }
-    
+
             # 先初始化所有必需的预设
             for preset_name in required_presets:
                 lang_key, default_style = lang_key_mapping[preset_name]
-                self.presets[preset_name] = {lang_key: default_style, "chn": self.default_chn_raw}
-    
+                if preset_name == "kor_jpn":
+                    # 韩日双语：包含 kor 和 jpn
+                    self.presets[preset_name] = {
+                        "kor": self.default_kor_raw,
+                        "jpn": self.default_jpn_raw
+                    }
+                else:
+                    # 其他预设：外语 + 中文
+                    self.presets[preset_name] = {lang_key: default_style, "chn": self.default_chn_raw}
+
             # 从配置文件加载预设
             for section_name, section_data in data.items():
                 # 检查是否是 Srt2Ass 预设 section
                 if section_name.startswith("Srt2Ass"):
                     # 提取预设名称（去掉 "Srt2Ass_" 前缀）
                     preset_name = section_name[8:]  # "Srt2Ass_" 长度为 8
-    
+
                     # 只处理已知的预设名称，忽略乱码或未知名称
                     if preset_name in required_presets:
-                        # 获取对应的外语键名和默认样式
-                        lang_key, default_style = lang_key_mapping[preset_name]
-    
-                        # 从 section_data 中提取样式行
-                        lang_style = section_data.get(lang_key, "").strip()
-                        chn_style = section_data.get("chn", "").strip()
-    
-                        # 如果样式为空，使用默认样式
-                        if not lang_style:
-                            lang_style = default_style
-                        if not chn_style:
-                            chn_style = self.default_chn_raw
-    
-                        self.presets[preset_name] = {
-                            lang_key: lang_style,
-                            "chn": chn_style
-                        }
-    
+                        if preset_name == "kor_jpn":
+                            # 韩日双语：加载 kor 和 jpn 样式
+                            kor_style = section_data.get("kor", "").strip()
+                            jpn_style = section_data.get("jpn", "").strip()
+
+                            if not kor_style:
+                                kor_style = self.default_kor_raw
+                            if not jpn_style:
+                                jpn_style = self.default_jpn_raw
+
+                            self.presets[preset_name] = {
+                                "kor": kor_style,
+                                "jpn": jpn_style
+                            }
+                        else:
+                            # 其他预设：外语 + 中文
+                            lang_key, default_style = lang_key_mapping[preset_name]
+
+                            # 从 section_data 中提取样式行
+                            lang_style = section_data.get(lang_key, "").strip()
+                            chn_style = section_data.get("chn", "").strip()
+
+                            # 如果样式为空，使用默认样式
+                            if not lang_style:
+                                lang_style = default_style
+                            if not chn_style:
+                                chn_style = self.default_chn_raw
+
+                            self.presets[preset_name] = {
+                                lang_key: lang_style,
+                                "chn": chn_style
+                            }
+
             # 确保当前预设存在
             if hasattr(self, 'ass_pattern') and self.ass_pattern not in self.presets:
                 self.ass_pattern = "kor_chn"
@@ -335,7 +360,8 @@ class ConfigManager:
         preset_mapping = {
             "kor_chn": "韩上中下",
             "jpn_chn": "日上中下",
-            "eng_chn": "英上中下"
+            "eng_chn": "英上中下",
+            "kor_jpn": "韩上日下"
         }
         ass_pattern_to_save = preset_mapping.get(self.ass_pattern, "韩上中下")
         
@@ -384,17 +410,25 @@ class ConfigManager:
         }
 
         # 将预设作为独立的 section 保存（格式为 "Srt2Ass_预设名"）
-        lang_key_mapping = {
-            "kor_chn": "kor",
-            "jpn_chn": "jpn",
-            "eng_chn": "eng"
-        }
         for preset_name, styles in self.presets.items():
-            lang_key = lang_key_mapping[preset_name]
-            config_data[f"Srt2Ass_{preset_name}"] = {
-                lang_key: styles[lang_key],
-                "chn": styles["chn"]
-            }
+            if preset_name == "kor_jpn":
+                # 韩日双语：保存 kor 和 jpn 样式
+                config_data[f"Srt2Ass_{preset_name}"] = {
+                    "kor": styles["kor"],
+                    "jpn": styles["jpn"]
+                }
+            else:
+                # 其他预设：外语 + 中文
+                lang_key_mapping = {
+                    "kor_chn": "kor",
+                    "jpn_chn": "jpn",
+                    "eng_chn": "eng"
+                }
+                lang_key = lang_key_mapping[preset_name]
+                config_data[f"Srt2Ass_{preset_name}"] = {
+                    lang_key: styles[lang_key],
+                    "chn": styles["chn"]
+                }
 
         # 保存所有配置
         SettingsHandler.save_all_configs(config_data)
@@ -402,18 +436,23 @@ class ConfigManager:
     def refresh_parsed_styles(self):
         """刷新解析后的样式"""
         curr_preset = self.presets[self.ass_pattern]
-        
-        # 根据预设名称确定外语键名
-        lang_key_mapping = {
-            "kor_chn": "kor",
-            "jpn_chn": "jpn",
-            "eng_chn": "eng"
-        }
-        lang_key = lang_key_mapping[self.ass_pattern]
-        
-        # 解析外语和中文样式
-        self.kor_parsed = SettingsHandler.parse_ass_style(curr_preset[lang_key])
-        self.chn_parsed = SettingsHandler.parse_ass_style(curr_preset["chn"])
+
+        if self.ass_pattern == "kor_jpn":
+            # 韩日双语：解析 kor 和 jpn 样式
+            self.kor_parsed = SettingsHandler.parse_ass_style(curr_preset["kor"])
+            self.jpn_parsed = SettingsHandler.parse_ass_style(curr_preset["jpn"])
+        else:
+            # 其他预设：外语 + 中文
+            lang_key_mapping = {
+                "kor_chn": "kor",
+                "jpn_chn": "jpn",
+                "eng_chn": "eng"
+            }
+            lang_key = lang_key_mapping[self.ass_pattern]
+
+            # 解析外语和中文样式
+            self.kor_parsed = SettingsHandler.parse_ass_style(curr_preset[lang_key])
+            self.chn_parsed = SettingsHandler.parse_ass_style(curr_preset["chn"])
 
     def get_whisper_model_config(self):
         """
@@ -754,4 +793,7 @@ class ConfigManager:
 
         # 同步解析后的样式
         controller.kor_parsed = self.kor_parsed
-        controller.chn_parsed = self.chn_parsed
+        if hasattr(self, 'chn_parsed'):
+            controller.chn_parsed = self.chn_parsed
+        if hasattr(self, 'jpn_parsed'):
+            controller.jpn_parsed = self.jpn_parsed

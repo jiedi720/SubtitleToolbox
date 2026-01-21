@@ -605,7 +605,8 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         preset_mapping = {
             "韩上中下": "kor_chn",
             "日上中下": "jpn_chn",
-            "英上中下": "eng_chn"
+            "英上中下": "eng_chn",
+            "韩上日下": "kor_jpn"
         }
         pattern_name_en = preset_mapping.get(pattern_name_cn, "kor_chn")
 
@@ -1018,16 +1019,18 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
             preset_mapping = {
                 "kor_chn": "韩上中下",
                 "jpn_chn": "日上中下",
-                "eng_chn": "英上中下"
+                "eng_chn": "英上中下",
+                "kor_jpn": "韩上日下"
             }
             pattern_name_cn = preset_mapping.get(self.app.ass_pattern, "韩上中下")
             
             # 根据中文方案名称设置选中项
-            # 选项为：0=韩上中下, 1=日上中下, 2=英上中下
+            # 选项为：0=韩上中下, 1=日上中下, 2=英上中下, 3=韩上日下
             preset_to_index = {
                 "韩上中下": 0,
                 "日上中下": 1,
-                "英上中下": 2
+                "英上中下": 2,
+                "韩上日下": 3
             }
             index = preset_to_index.get(pattern_name_cn, 0)
             self.AssPatternSelect.setCurrentIndex(index)

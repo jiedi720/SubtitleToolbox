@@ -72,9 +72,12 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
     try:
         if task_mode == "Srt2Ass":
             # 执行SRT转ASS任务
+            # 获取当前样式字典（调用方法，而不是传递方法本身）
+            styles_getter = kwargs.get('_get_current_styles', lambda: {'kor': '', 'chn': ''})
+            current_styles = styles_getter()
             run_ass_task(
                 target_dir, 
-                kwargs.get('_get_current_styles', lambda: {'kor': '', 'chn': ''}), 
+                current_styles, 
                 log_callback, 
                 progress_callback, 
                 root, 

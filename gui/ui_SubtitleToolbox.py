@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'SubtitleToolboxQazqTK.ui'
+## Form generated from reading UI file 'SubtitleToolboxlVUhag.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.10.1
 ##
@@ -956,6 +956,7 @@ class Ui_SubtitleToolbox(object):
         self.AssPatternSelect.addItem("")
         self.AssPatternSelect.addItem("")
         self.AssPatternSelect.addItem("")
+        self.AssPatternSelect.addItem("")
         self.AssPatternSelect.setObjectName(u"AssPatternSelect")
         sizePolicy.setHeightForWidth(self.AssPatternSelect.sizePolicy().hasHeightForWidth())
         self.AssPatternSelect.setSizePolicy(sizePolicy)
@@ -1716,7 +1717,7 @@ class Ui_SubtitleToolbox(object):
 
         self.retranslateUi(SubtitleToolbox)
 
-        self.Function.setCurrentIndex(3)
+        self.Function.setCurrentIndex(0)
 
 
         QMetaObject.connectSlotsByName(SubtitleToolbox)
@@ -1798,6 +1799,7 @@ class Ui_SubtitleToolbox(object):
         self.AssPatternSelect.setItemText(0, QCoreApplication.translate("SubtitleToolbox", u"\u97e9\u4e0a\u4e2d\u4e0b", None))
         self.AssPatternSelect.setItemText(1, QCoreApplication.translate("SubtitleToolbox", u"\u65e5\u4e0a\u4e2d\u4e0b", None))
         self.AssPatternSelect.setItemText(2, QCoreApplication.translate("SubtitleToolbox", u"\u82f1\u4e0a\u4e2d\u4e0b", None))
+        self.AssPatternSelect.setItemText(3, QCoreApplication.translate("SubtitleToolbox", u"\u97e9\u4e0a\u65e5\u4e0b", None))
 
 #if QT_CONFIG(tooltip)
         self.Vtt2SrtDrop.setToolTip("")
