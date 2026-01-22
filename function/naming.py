@@ -18,7 +18,7 @@ def clean_filename_title(filename):
     """从文件名中提取纯净标题
     
     保留对单集集数的识别，确保 PDF 内部标题含有 S01E01 格式。
-    对于电影文件，提取完整标题并移除常见垃圾词。
+    对于没有 S01E01 或年份标识的文件名，保留完整的原始文件名（包括括号、空格、连字符等特殊字符）。
     
     Args:
         filename: 原始文件名
@@ -32,6 +32,9 @@ def clean_filename_title(filename):
     match_se = re.search(r'(.*?(?:S\d{1,2}[\s.]?E\d{1,3}|E\d{1,3}))', name, re.IGNORECASE)
     if match_se: 
         name = match_se.group(1)
+        # 对于有集数标识的文件，替换分隔符为空格并清理
+        clean_name = name.replace('.', ' ').replace('_', ' ').replace('-', ' ')
+        return re.sub(r'\s+', ' ', clean_name).strip()
     else:
         # 对于电影文件，尝试提取年份之前的部分
         match_year = re.search(r'(.*?)[._\s(\[](19|20)\d{2}', name)
@@ -39,18 +42,14 @@ def clean_filename_title(filename):
             # 保留到年份为止，包括年份
             year_pos = match_year.end()
             name = name[:year_pos]
+            # 对于有年份的文件，替换分隔符为空格并清理
+            clean_name = name.replace('.', ' ').replace('_', ' ').replace('-', ' ')
+            return re.sub(r'\s+', ' ', clean_name).strip()
         else:
-            # 如果没有找到年份，提取到第一个非字母数字中文的字符之前
-            # 匹配连续的字母、数字、中文、点、空格、下划线、连字符
-            match_simple = re.search(r'^([A-Za-z0-9\u4e00-\u9fa5\s\.\-_]+)', name)
-            if match_simple:
-                name = match_simple.group(1)
-    
-    # 替换分隔符为空格
-    clean_name = name.replace('.', ' ').replace('_', ' ').replace('-', ' ')
-    
-    # 移除多余空格并返回
-    return re.sub(r'\s+', ' ', clean_name).strip()
+            # 如果没有找到 S01E01 或年份，保留完整的原始文件名
+            # 不做任何清理，只移除文件扩展名
+            # 这样可以保留括号、空格、连字符等特殊字符
+            return name.strip()
 
 def get_series_name(filename):
     """提取剧集系列名，用于文件分组

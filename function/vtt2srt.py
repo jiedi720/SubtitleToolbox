@@ -24,28 +24,40 @@ def vtt_to_srt(vtt_path, log_callback=None):
         srt_lines = []
         counter = 1
         temp_block = []
+        in_subtitle = False
 
         for line in lines:
             stripped = line.strip()
+            # 跳过空行、WEBVTT头部和元数据
             if stripped == '' or stripped == 'WEBVTT' or stripped.startswith('Kind:') or stripped.startswith(
                     'Language:'):
                 continue
 
             if '-->' in stripped:
-                if temp_block:
+                # 如果之前有字幕块，先写入
+                if in_subtitle and temp_block:
                     srt_lines.append(str(counter))
                     srt_lines.extend(temp_block)
                     srt_lines.append('')
                     counter += 1
                     temp_block = []
+                
+                # 处理时间戳
                 parts = stripped.split('-->')
                 start_time = parts[0].strip().replace('.', ',')
                 end_time = parts[1].strip().replace('.', ',')
                 temp_block.append(f"{start_time} --> {end_time}")
+                in_subtitle = True
             else:
-                temp_block.append(stripped)
+                # 跳过纯数字行（VTT的序号行）
+                if stripped.isdigit():
+                    continue
+                # 添加文本行
+                if in_subtitle:
+                    temp_block.append(stripped)
 
-        if temp_block:
+        # 写入最后一个字幕块
+        if in_subtitle and temp_block:
             srt_lines.append(str(counter))
             srt_lines.extend(temp_block)
             srt_lines.append('')
