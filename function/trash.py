@@ -87,8 +87,8 @@ def clear_output_to_trash(target_root, log_func, parent=None, current_mode=None)
             if os.path.isdir(full_path):
                 # 检查当前模式
                 if current_mode in ["Script", "Merge", "Srt2Ass"]:
-                    # Script、Merge、Srt2Ass模式下，只清空生成的pdf、word、txt子文件夹
-                    generated_folders = ["pdf", "word", "txt"]
+                    # Script、Merge、Srt2Ass模式下，只清空生成的script子文件夹
+                    generated_folders = ["script", "pdf", "word", "txt", "md"]
                     if item.lower() in generated_folders:
                         # 递归清理生成的子文件夹
                         d, e, recursive_items = _recursive_delete(full_path, log_func, current_mode)

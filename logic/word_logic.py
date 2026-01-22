@@ -66,7 +66,7 @@ def run_word_creation_task(target_dir, log_func, progress_bar, root, batch_size=
             continue
         
         # 生成输出文件名
-        out_name = generate_output_name([os.path.basename(f) for f in group], ".docx", volume_pattern)
+        out_name = generate_output_name([os.path.basename(f) for f in group], ".docx", volume_pattern, target_dir)
         # 获取组织化路径
         out_path = get_organized_path(base_output_dir, out_name)
         
@@ -123,7 +123,9 @@ def run_word_creation_task(target_dir, log_func, progress_bar, root, batch_size=
             
             # 保存文档
             doc.save(out_path)
-            log_func(f"📄 已生成: {os.path.join('word', out_name).replace('/', '\\')}", tag="word_blue")
+            # 使用实际生成的文件路径
+            relative_path = os.path.relpath(out_path, base_output_dir)
+            log_func(f"📄 已生成: {relative_path.replace('/', '\\')}", tag="word_blue")
         except Exception as e: 
             log_func(f"❌ 生成失败: {e}")
     

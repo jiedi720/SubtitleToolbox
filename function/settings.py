@@ -161,10 +161,12 @@ class ConfigManager:
         self.output2pdf = True  # 是否生成PDF
         self.output2word = True  # 是否生成Word
         self.output2txt = True  # 是否生成TXT
+        self.output2md = True  # 是否生成Markdown
         # Merge 模式输出选项
         self.merge_pdf = True  # 是否合并PDF
         self.merge_word = True  # 是否合并Word
         self.merge_txt = True  # 是否合并TXT
+        self.merge_md = True  # 是否合并Markdown
 
         # 主题相关变量
         self.theme_mode = "System"  # 主题模式
@@ -196,6 +198,7 @@ class ConfigManager:
         self.output2pdf = script_config.get("output2pdf", "True") == "True"
         self.output2word = script_config.get("output2word", "True") == "True"
         self.output2txt = script_config.get("output2txt", "True") == "True"
+        self.output2md = script_config.get("output2md", "True") == "True"
 
         # Merge 模式路径
         merge_config = data.get("Merge", {})
@@ -204,6 +207,7 @@ class ConfigManager:
         self.merge_pdf = merge_config.get("merge_pdf", "True") == "True"
         self.merge_word = merge_config.get("merge_word", "True") == "True"
         self.merge_txt = merge_config.get("merge_txt", "True") == "True"
+        self.merge_md = merge_config.get("merge_md", "True") == "True"
 
         # Srt2Ass 模式路径
         srt2ass_config = data.get("Srt2Ass", {})
@@ -379,16 +383,16 @@ class ConfigManager:
                 "script_output_dir": self.script_output_dir.strip() if hasattr(self, 'script_output_dir') else "",
                 "volume_pattern": self.volume_pattern,
                 "output2pdf": str(self.output2pdf),
-                "output2word": str(self.output2word),
-                "output2txt": str(self.output2txt)
-            },
+                            "output2word": str(self.output2word),
+                            "output2txt": str(self.output2txt),
+                            "output2md": str(self.output2md)            },
             "Merge": {
                 "merge_dir": self.merge_dir.strip() if hasattr(self, 'merge_dir') else "",
                 "merge_output_dir": self.merge_output_dir.strip() if hasattr(self, 'merge_output_dir') else "",
                 "merge_pdf": str(self.merge_pdf),
-                "merge_word": str(self.merge_word),
-                "merge_txt": str(self.merge_txt)
-            },
+                            "merge_word": str(self.merge_word),
+                            "merge_txt": str(self.merge_txt),
+                            "merge_md": str(self.merge_md)            },
             "Srt2Ass": {
                 "srt2ass_dir": self.srt2ass_dir.strip() if hasattr(self, 'srt2ass_dir') else "",
                 "srt2ass_output_dir": self.srt2ass_output_dir.strip() if hasattr(self, 'srt2ass_output_dir') else ""
@@ -734,9 +738,11 @@ class ConfigManager:
         self.output2pdf = controller.output2pdf
         self.output2word = controller.output2word
         self.output2txt = controller.output2txt
+        self.output2md = controller.output2md
         self.merge_pdf = controller.merge_pdf
         self.merge_word = controller.merge_word
         self.merge_txt = controller.merge_txt
+        self.merge_md = controller.merge_md
 
         # 主题相关变量
         self.theme_mode = controller.theme_mode
@@ -774,9 +780,11 @@ class ConfigManager:
         controller.output2pdf = self.output2pdf
         controller.output2word = self.output2word
         controller.output2txt = self.output2txt
+        controller.output2md = self.output2md
         controller.merge_pdf = self.merge_pdf
         controller.merge_word = self.merge_word
         controller.merge_txt = self.merge_txt
+        controller.merge_md = self.merge_md
 
         # 主题相关变量
         controller.theme_mode = self.theme_mode

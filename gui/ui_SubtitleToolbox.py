@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'SubtitleToolboxlVUhag.ui'
+## Form generated from reading UI file 'SubtitleToolboxYvbWzn.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.10.1
 ##
@@ -461,14 +461,13 @@ class Ui_SubtitleToolbox(object):
         self.Script.setFont(font5)
         self.verticalLayout_4 = QVBoxLayout(self.Script)
         self.verticalLayout_4.setObjectName(u"verticalLayout_4")
-        self.horizontalLayout_6 = QHBoxLayout()
-        self.horizontalLayout_6.setSpacing(0)
-        self.horizontalLayout_6.setObjectName(u"horizontalLayout_6")
-        self.horizontalLayout_6.setSizeConstraint(QLayout.SizeConstraint.SetDefaultConstraint)
+        self.horizontalLayout_7 = QHBoxLayout()
+        self.horizontalLayout_7.setSpacing(0)
+        self.horizontalLayout_7.setObjectName(u"horizontalLayout_7")
         self.horizontalLayout_5 = QHBoxLayout()
-        self.horizontalLayout_5.setSpacing(25)
+        self.horizontalLayout_5.setSpacing(10)
         self.horizontalLayout_5.setObjectName(u"horizontalLayout_5")
-        self.horizontalLayout_5.setContentsMargins(20, 0, 20, -1)
+        self.horizontalLayout_5.setContentsMargins(5, -1, 2, -1)
         self.Output2PDF = QToolButton(self.Script)
         self.Output2PDF.setObjectName(u"Output2PDF")
         sizePolicy3 = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
@@ -619,12 +618,60 @@ class Ui_SubtitleToolbox(object):
 
         self.horizontalLayout_5.addWidget(self.Output2Txt)
 
-        self.horizontalLayout_5.setStretch(0, 1)
-        self.horizontalLayout_5.setStretch(1, 1)
-        self.horizontalLayout_5.setStretch(2, 1)
+        self.Output2Md = QToolButton(self.Script)
+        self.Output2Md.setObjectName(u"Output2Md")
+        sizePolicy3.setHeightForWidth(self.Output2Md.sizePolicy().hasHeightForWidth())
+        self.Output2Md.setSizePolicy(sizePolicy3)
+        self.Output2Md.setMinimumSize(QSize(50, 50))
+        self.Output2Md.setMaximumSize(QSize(50, 50))
+        self.Output2Md.setFont(font7)
+        self.Output2Md.setStyleSheet(u"QToolButton {\n"
+"    /* \u5373\u4f7f\u4e0d\u8bbe\u7f6e\u80cc\u666f\u548c\u8fb9\u6846\uff0c\u4e5f\u8981\u5728\u8fd9\u91cc\u58f0\u660e\u5706\u89d2 */\n"
+"    border-radius: 9px;\n"
+"    border: 1px solid #b4b7bc;     \n"
+"    /* \u57fa\u7840\u5185\u8fb9\u8ddd\u548c\u5b57\u4f53 */\n"
+"    padding: 4px;\n"
+"    background-color: transparent; /* \u6216\u8005\u8bbe\u7f6e\u4f60\u60f3\u8981\u7684\u9ed8\u8ba4\u80cc\u666f\u8272 */\n"
+"}\n"
+"\n"
+"/* 2. \u4f60\u539f\u672c\u7684\u60ac\u6d6e\u72b6\u6001 */\n"
+"QToolButton:hover {\n"
+"    background-color: #e5f1fb;\n"
+"    border: 1px solid #9b6be3;\n"
+"    border-radius: 9px;\n"
+"}\n"
+"\n"
+"/* 3. \u4f60\u539f\u672c\u7684\u6309\u4e0b\u72b6\u6001 */\n"
+"QToolButton:pressed {\n"
+"    background-color: #cce4f7;\n"
+"    border: 1px solid #9b6be3;\n"
+"    border-radius: 9px;\n"
+"}\n"
+"\n"
+"/* 4. \u4f60\u539f\u672c\u7684\u9009\u4e2d\u72b6\u6001 */\n"
+"QToolButton:checked {\n"
+"    background-color: #9b6be3;\n"
+"    color: white;\n"
+"    border: 1px solid #9b6be3;\n"
+"    border-r"
+                        "adius: 9px;\n"
+"}")
+        icon9 = QIcon()
+        icon9.addFile(u"Icons/Markdown.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.Output2Md.setIcon(icon9)
+        self.Output2Md.setIconSize(QSize(35, 35))
+        self.Output2Md.setCheckable(True)
+        self.Output2Md.setChecked(False)
 
-        self.horizontalLayout_6.addLayout(self.horizontalLayout_5)
+        self.horizontalLayout_5.addWidget(self.Output2Md)
 
+
+        self.horizontalLayout_7.addLayout(self.horizontalLayout_5)
+
+        self.horizontalLayout_6 = QHBoxLayout()
+        self.horizontalLayout_6.setSpacing(5)
+        self.horizontalLayout_6.setObjectName(u"horizontalLayout_6")
+        self.horizontalLayout_6.setContentsMargins(10, -1, -1, -1)
         self.DividingLine = QFrame(self.Script)
         self.DividingLine.setObjectName(u"DividingLine")
         self.DividingLine.setMinimumSize(QSize(10, 0))
@@ -645,7 +692,7 @@ class Ui_SubtitleToolbox(object):
         self.DividingLine.setFrameShape(QFrame.Shape.VLine)
         self.DividingLine.setFrameShadow(QFrame.Shadow.Sunken)
 
-        self.horizontalLayout_6.addWidget(self.DividingLine, 0, Qt.AlignmentFlag.AlignHCenter)
+        self.horizontalLayout_6.addWidget(self.DividingLine)
 
         self.verticalLayout_6 = QVBoxLayout()
         self.verticalLayout_6.setSpacing(0)
@@ -659,7 +706,7 @@ class Ui_SubtitleToolbox(object):
         sizePolicy4.setVerticalStretch(30)
         sizePolicy4.setHeightForWidth(self.VolumeLabel.sizePolicy().hasHeightForWidth())
         self.VolumeLabel.setSizePolicy(sizePolicy4)
-        self.VolumeLabel.setMinimumSize(QSize(60, 0))
+        self.VolumeLabel.setMinimumSize(QSize(0, 0))
         self.VolumeLabel.setMaximumSize(QSize(50, 16777215))
         font8 = QFont()
         font8.setPointSize(11)
@@ -753,10 +800,11 @@ class Ui_SubtitleToolbox(object):
 
         self.horizontalLayout_6.addLayout(self.verticalLayout_6)
 
-        self.horizontalLayout_6.setStretch(0, 5)
-        self.horizontalLayout_6.setStretch(2, 1)
 
-        self.verticalLayout_4.addLayout(self.horizontalLayout_6)
+        self.horizontalLayout_7.addLayout(self.horizontalLayout_6)
+
+
+        self.verticalLayout_4.addLayout(self.horizontalLayout_7)
 
         self.Function.addTab(self.Script, "")
         self.Merge = QWidget()
@@ -764,11 +812,9 @@ class Ui_SubtitleToolbox(object):
         self.Merge.setFont(font5)
         self.verticalLayout_2 = QVBoxLayout(self.Merge)
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
-        self.verticalLayout_2.setContentsMargins(-1, 9, -1, 9)
         self.horizontalLayout_2 = QHBoxLayout()
-        self.horizontalLayout_2.setSpacing(0)
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
-        self.horizontalLayout_2.setContentsMargins(30, -1, 30, -1)
+        self.horizontalLayout_2.setContentsMargins(20, -1, 20, -1)
         self.MergePDF = QToolButton(self.Merge)
         self.MergePDF.setObjectName(u"MergePDF")
         sizePolicy.setHeightForWidth(self.MergePDF.sizePolicy().hasHeightForWidth())
@@ -913,9 +959,51 @@ class Ui_SubtitleToolbox(object):
 
         self.horizontalLayout_2.addWidget(self.MergeTxt)
 
-        self.horizontalLayout_2.setStretch(0, 1)
-        self.horizontalLayout_2.setStretch(1, 1)
-        self.horizontalLayout_2.setStretch(2, 1)
+        self.MergeMd = QToolButton(self.Merge)
+        self.MergeMd.setObjectName(u"MergeMd")
+        sizePolicy3.setHeightForWidth(self.MergeMd.sizePolicy().hasHeightForWidth())
+        self.MergeMd.setSizePolicy(sizePolicy3)
+        self.MergeMd.setMinimumSize(QSize(50, 50))
+        self.MergeMd.setMaximumSize(QSize(50, 50))
+        self.MergeMd.setFont(font7)
+        self.MergeMd.setStyleSheet(u"QToolButton {\n"
+"    /* \u5373\u4f7f\u4e0d\u8bbe\u7f6e\u80cc\u666f\u548c\u8fb9\u6846\uff0c\u4e5f\u8981\u5728\u8fd9\u91cc\u58f0\u660e\u5706\u89d2 */\n"
+"    border-radius: 9px;\n"
+"    border: 1px solid #b4b7bc;     \n"
+"    /* \u57fa\u7840\u5185\u8fb9\u8ddd\u548c\u5b57\u4f53 */\n"
+"    padding: 4px;\n"
+"    background-color: transparent; /* \u6216\u8005\u8bbe\u7f6e\u4f60\u60f3\u8981\u7684\u9ed8\u8ba4\u80cc\u666f\u8272 */\n"
+"}\n"
+"\n"
+"/* 2. \u4f60\u539f\u672c\u7684\u60ac\u6d6e\u72b6\u6001 */\n"
+"QToolButton:hover {\n"
+"    background-color: #e5f1fb;\n"
+"    border: 1px solid #9b6be3;\n"
+"    border-radius: 9px;\n"
+"}\n"
+"\n"
+"/* 3. \u4f60\u539f\u672c\u7684\u6309\u4e0b\u72b6\u6001 */\n"
+"QToolButton:pressed {\n"
+"    background-color: #cce4f7;\n"
+"    border: 1px solid #9b6be3;\n"
+"    border-radius: 9px;\n"
+"}\n"
+"\n"
+"/* 4. \u4f60\u539f\u672c\u7684\u9009\u4e2d\u72b6\u6001 */\n"
+"QToolButton:checked {\n"
+"    background-color: #9b6be3;\n"
+"    color: white;\n"
+"    border: 1px solid #9b6be3;\n"
+"    border-r"
+                        "adius: 9px;\n"
+"}")
+        self.MergeMd.setIcon(icon9)
+        self.MergeMd.setIconSize(QSize(35, 35))
+        self.MergeMd.setCheckable(True)
+        self.MergeMd.setChecked(False)
+
+        self.horizontalLayout_2.addWidget(self.MergeMd)
+
 
         self.verticalLayout_2.addLayout(self.horizontalLayout_2)
 
@@ -1386,55 +1474,17 @@ class Ui_SubtitleToolbox(object):
 
         self.gridLayout_2 = QGridLayout()
         self.gridLayout_2.setObjectName(u"gridLayout_2")
-        self.Start = QPushButton(self.centralwidget)
-        self.Start.setObjectName(u"Start")
-        sizePolicy2.setHeightForWidth(self.Start.sizePolicy().hasHeightForWidth())
-        self.Start.setSizePolicy(sizePolicy2)
-        self.Start.setMinimumSize(QSize(0, 55))
-        self.Start.setMaximumSize(QSize(16777215, 55))
-        font13 = QFont()
-        font13.setPointSize(12)
-        font13.setWeight(QFont.DemiBold)
-        font13.setKerning(True)
-        font13.setHintingPreference(QFont.PreferNoHinting)
-        self.Start.setFont(font13)
-        self.Start.setStyleSheet(u"/* \u6309\u94ae\u9ed8\u8ba4\u6837\u5f0f */\n"
-"QPushButton {\n"
-"    color: rgb(0, 0, 0);\n"
-"    background-color:#00b8a9;\n"
-"    border-radius: 9px;\n"
-"    padding: 5px 15px;\n"
-"    border: none;\n"
-"}\n"
-"\n"
-"/* \u60ac\u6d6e\u7279\u6548\uff1a\u80cc\u666f\u989c\u8272\u53d8\u6d45\uff0c\u5e76\u589e\u52a0\u84dd\u8272\u8fb9\u6846\u611f */\n"
-"QPushButton:hover {\n"
-"    background-color: rgb(0, 214, 196); /* \u989c\u8272\u6bd4\u9ed8\u8ba4\u7a0d\u4eae */\n"
-"}\n"
-"\n"
-"QPushButton:pressed {\n"
-"    /* 1. \u5411\u4e0b\u63a8\u6587\u5b57 */\n"
-"    padding-top: 5px; \n"
-"    /* 2. \u540c\u65f6\u51cf\u5c11\u5e95\u90e8\uff0c\u786e\u4fdd\u5185\u90e8\u6709\u6548\u7a7a\u95f4\u9ad8\u5ea6\u4e0d\u53d8 */\n"
-"    padding-bottom: 0px; \n"
-"    /* 3. \u5f3a\u5236\u5185\u5bb9\u6c34\u5e73\u5782\u76f4\u5c45\u4e2d\uff0c\u9632\u6b62\u5bf9\u9f50\u65b9\u5f0f\u5e72\u6270 */\n"
-"    text-align: center;\n"
-"}")
-        icon9 = QIcon()
-        icon9.addFile(u"icons/shuttle.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
-        self.Start.setIcon(icon9)
-        self.Start.setIconSize(QSize(30, 30))
-        self.Start.setCheckable(False)
-        self.Start.setChecked(False)
-
-        self.gridLayout_2.addWidget(self.Start, 0, 0, 1, 1)
-
         self.Stop = QPushButton(self.centralwidget)
         self.Stop.setObjectName(u"Stop")
         sizePolicy2.setHeightForWidth(self.Stop.sizePolicy().hasHeightForWidth())
         self.Stop.setSizePolicy(sizePolicy2)
         self.Stop.setMinimumSize(QSize(0, 55))
         self.Stop.setMaximumSize(QSize(16777215, 55))
+        font13 = QFont()
+        font13.setPointSize(12)
+        font13.setWeight(QFont.DemiBold)
+        font13.setKerning(True)
+        font13.setHintingPreference(QFont.PreferNoHinting)
         self.Stop.setFont(font13)
         self.Stop.setStyleSheet(u"/* \u6309\u94ae\u9ed8\u8ba4\u6837\u5f0f */\n"
 "QPushButton {\n"
@@ -1467,6 +1517,44 @@ class Ui_SubtitleToolbox(object):
 
         self.gridLayout_2.addWidget(self.Stop, 0, 1, 1, 1)
 
+        self.Start = QPushButton(self.centralwidget)
+        self.Start.setObjectName(u"Start")
+        sizePolicy2.setHeightForWidth(self.Start.sizePolicy().hasHeightForWidth())
+        self.Start.setSizePolicy(sizePolicy2)
+        self.Start.setMinimumSize(QSize(0, 55))
+        self.Start.setMaximumSize(QSize(16777215, 55))
+        self.Start.setFont(font13)
+        self.Start.setStyleSheet(u"/* \u6309\u94ae\u9ed8\u8ba4\u6837\u5f0f */\n"
+"QPushButton {\n"
+"    color: rgb(0, 0, 0);\n"
+"    background-color:#00b8a9;\n"
+"    border-radius: 9px;\n"
+"    padding: 5px 15px;\n"
+"    border: none;\n"
+"}\n"
+"\n"
+"/* \u60ac\u6d6e\u7279\u6548\uff1a\u80cc\u666f\u989c\u8272\u53d8\u6d45\uff0c\u5e76\u589e\u52a0\u84dd\u8272\u8fb9\u6846\u611f */\n"
+"QPushButton:hover {\n"
+"    background-color: rgb(0, 214, 196); /* \u989c\u8272\u6bd4\u9ed8\u8ba4\u7a0d\u4eae */\n"
+"}\n"
+"\n"
+"QPushButton:pressed {\n"
+"    /* 1. \u5411\u4e0b\u63a8\u6587\u5b57 */\n"
+"    padding-top: 5px; \n"
+"    /* 2. \u540c\u65f6\u51cf\u5c11\u5e95\u90e8\uff0c\u786e\u4fdd\u5185\u90e8\u6709\u6548\u7a7a\u95f4\u9ad8\u5ea6\u4e0d\u53d8 */\n"
+"    padding-bottom: 0px; \n"
+"    /* 3. \u5f3a\u5236\u5185\u5bb9\u6c34\u5e73\u5782\u76f4\u5c45\u4e2d\uff0c\u9632\u6b62\u5bf9\u9f50\u65b9\u5f0f\u5e72\u6270 */\n"
+"    text-align: center;\n"
+"}")
+        icon11 = QIcon()
+        icon11.addFile(u"icons/shuttle.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.Start.setIcon(icon11)
+        self.Start.setIconSize(QSize(30, 30))
+        self.Start.setCheckable(False)
+        self.Start.setChecked(False)
+
+        self.gridLayout_2.addWidget(self.Start, 0, 0, 1, 1)
+
         self.ClearLogs = QPushButton(self.centralwidget)
         self.ClearLogs.setObjectName(u"ClearLogs")
         sizePolicy6 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -1496,9 +1584,9 @@ class Ui_SubtitleToolbox(object):
 "}\n"
 "\n"
 "")
-        icon11 = QIcon()
-        icon11.addFile(u"icons/broom.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
-        self.ClearLogs.setIcon(icon11)
+        icon12 = QIcon()
+        icon12.addFile(u"icons/broom.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.ClearLogs.setIcon(icon12)
         self.ClearLogs.setIconSize(QSize(40, 40))
 
         self.gridLayout_2.addWidget(self.ClearLogs, 1, 0, 1, 1)
@@ -1530,17 +1618,15 @@ class Ui_SubtitleToolbox(object):
 "\n"
 "\n"
 "")
-        icon12 = QIcon()
-        icon12.addFile(u"icons/delete.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
-        self.DeleteFiles.setIcon(icon12)
+        icon13 = QIcon()
+        icon13.addFile(u"icons/delete.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.DeleteFiles.setIcon(icon13)
         self.DeleteFiles.setIconSize(QSize(30, 30))
 
         self.gridLayout_2.addWidget(self.DeleteFiles, 1, 1, 1, 1)
 
         self.gridLayout_2.setRowStretch(0, 1)
-        self.gridLayout_2.setRowStretch(1, 1)
         self.gridLayout_2.setColumnStretch(0, 1)
-        self.gridLayout_2.setColumnStretch(1, 1)
 
         self.horizontalLayout.addLayout(self.gridLayout_2)
 
@@ -1776,6 +1862,10 @@ class Ui_SubtitleToolbox(object):
         self.Output2Txt.setToolTip(QCoreApplication.translate("SubtitleToolbox", u"\u4fdd\u5b58\u4e3atxt", None))
 #endif // QT_CONFIG(tooltip)
         self.Output2Txt.setText("")
+#if QT_CONFIG(tooltip)
+        self.Output2Md.setToolTip(QCoreApplication.translate("SubtitleToolbox", u"\u4fdd\u5b58\u4e3aMarkdown", None))
+#endif // QT_CONFIG(tooltip)
+        self.Output2Md.setText("")
         self.VolumeLabel.setText(QCoreApplication.translate("SubtitleToolbox", u"\u5206\u5377", None))
         self.VolumePatternSelect.setItemText(0, QCoreApplication.translate("SubtitleToolbox", u"\u6574\u5b63", None))
         self.VolumePatternSelect.setItemText(1, QCoreApplication.translate("SubtitleToolbox", u"\u667a\u80fd", None))
@@ -1794,6 +1884,10 @@ class Ui_SubtitleToolbox(object):
         self.MergeTxt.setToolTip(QCoreApplication.translate("SubtitleToolbox", u"\u5408\u5e76txt", None))
 #endif // QT_CONFIG(tooltip)
         self.MergeTxt.setText("")
+#if QT_CONFIG(tooltip)
+        self.MergeMd.setToolTip(QCoreApplication.translate("SubtitleToolbox", u"\u5408\u5e76Markdown", None))
+#endif // QT_CONFIG(tooltip)
+        self.MergeMd.setText("")
         self.Function.setTabText(self.Function.indexOf(self.Merge), QCoreApplication.translate("SubtitleToolbox", u"Merge", None))
         self.AssPatternLabel.setText(QCoreApplication.translate("SubtitleToolbox", u"\u5b57\u4f53\u65b9\u6848", None))
         self.AssPatternSelect.setItemText(0, QCoreApplication.translate("SubtitleToolbox", u"\u97e9\u4e0a\u4e2d\u4e0b", None))
@@ -1829,13 +1923,13 @@ class Ui_SubtitleToolbox(object):
 
         self.Function.setTabText(self.Function.indexOf(self.AutoSub), QCoreApplication.translate("SubtitleToolbox", u"AutoSub", None))
 #if QT_CONFIG(tooltip)
-        self.Start.setToolTip(QCoreApplication.translate("SubtitleToolbox", u"\u5f00\u59cb\u5904\u7406", None))
-#endif // QT_CONFIG(tooltip)
-        self.Start.setText("")
-#if QT_CONFIG(tooltip)
         self.Stop.setToolTip(QCoreApplication.translate("SubtitleToolbox", u"\u505c\u6b62\u5904\u7406", None))
 #endif // QT_CONFIG(tooltip)
         self.Stop.setText("")
+#if QT_CONFIG(tooltip)
+        self.Start.setToolTip(QCoreApplication.translate("SubtitleToolbox", u"\u5f00\u59cb\u5904\u7406", None))
+#endif // QT_CONFIG(tooltip)
+        self.Start.setText("")
 #if QT_CONFIG(tooltip)
         self.ClearLogs.setToolTip(QCoreApplication.translate("SubtitleToolbox", u"\u6e05\u7a7a\u65e5\u5fd7", None))
 #endif // QT_CONFIG(tooltip)

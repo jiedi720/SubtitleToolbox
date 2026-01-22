@@ -9,6 +9,7 @@ import re
 __all__ = [
     'run_pdf_merge_task',
     'run_txt_merge_task',
+    'run_md_merge_task',
     'run_docx_merge_task',
     'run_win32_merge_task',
     'execute_merge_tasks'
@@ -158,6 +159,85 @@ def run_txt_merge_task(target_dir, log_func, progress_bar, root, output_dir=None
                 with open(fp, 'r', encoding='utf-8') as infile:
                     outfile.write(infile.read())
                     outfile.write("\n\n" + "="*50 + "\n\n") 
+                # 更新进度，支持不同类型的进度回调
+                try:
+                    # 尝试PyQt的信号方式（progress_bar是信号对象）
+                    progress_bar.emit(int((i + 1) / total * 100))
+                except AttributeError:
+                    try:
+                        # 尝试直接调用方式（progress_bar是emit方法本身）
+                        progress_bar(int((i + 1) / total * 100))
+                    except Exception as e:
+                        pass
+            
+        # 检查是否停止
+        if stop_flag[0]:
+            log_func("⚠️ 任务已停止，未生成完整合并文件")
+            # 删除不完整的文件
+            if os.path.exists(out_path):
+                os.remove(out_path)
+        else:
+            log_func(f"✅ 合并成功: {out_path.replace('/', '\\')}")
+    except Exception as e:
+        log_func(f"❌ 合并失败: {e}")
+    finally:
+        # 重置进度条
+        try:
+            progress_bar.emit(0)
+        except AttributeError:
+            try:
+                progress_bar(0)
+            except Exception as e:
+                pass
+
+
+def run_md_merge_task(target_dir, log_func, progress_bar, root, output_dir=None, stop_flag=False):
+    """运行Markdown文档合并任务
+
+    合并多个Markdown文档为一个。
+
+    Args:
+        target_dir: 目标目录
+        log_func: 日志记录函数
+        progress_bar: 进度条信号
+        root: 根窗口
+        output_dir: 输出目录
+    """
+    # 查找Markdown文件
+    root_files = sorted([os.path.join(target_dir, f) for f in os.listdir(target_dir) 
+                        if f.lower().endswith('.md') and "合并" not in f])
+    
+    target_files = []
+    save_dir = target_dir
+
+    if root_files:
+        target_files = root_files
+    else:
+        # 检查目标目录下的md子文件夹
+        sub_dir = os.path.join(target_dir, "md")
+        if os.path.exists(sub_dir):
+            sub_files = sorted([os.path.join(sub_dir, f) for f in os.listdir(sub_dir)
+                               if f.lower().endswith('.md') and "合并" not in f])
+            if sub_files:
+                target_files = sub_files
+                save_dir = sub_dir
+
+    if not target_files:
+        return log_func("❌ 未找到 Markdown 文件")
+
+    total = len(target_files)
+    out_path = os.path.join(save_dir, "Markdown合并.md")
+
+    try:
+        with open(out_path, 'w', encoding='utf-8') as outfile:
+            for i, fp in enumerate(target_files):
+                # 检查停止标志
+                if stop_flag[0]:
+                    break
+                log_func(f"合并中: {os.path.basename(fp)}")
+                with open(fp, 'r', encoding='utf-8') as infile:
+                    outfile.write(infile.read())
+                    outfile.write("\n\n---\n\n") 
                 # 更新进度，支持不同类型的进度回调
                 try:
                     # 尝试PyQt的信号方式（progress_bar是信号对象）

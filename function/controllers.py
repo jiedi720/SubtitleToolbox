@@ -252,6 +252,26 @@ class TaskController:
     
     def start_thread(self): 
         """启动任务线程"""
+        # 在任务开始前从 GUI 输入框同步路径到控制器
+        if hasattr(self.gui, 'ReadPathInput') and hasattr(self.gui, 'SavePathInput'):
+            self.path_var = self.gui.ReadPathInput.text().strip()
+            self.output_path_var = self.gui.SavePathInput.text().strip()
+            
+            # 根据当前任务模式更新对应的路径变量
+            if hasattr(self, 'task_mode'):
+                if self.task_mode == "Script":
+                    self.script_dir = self.path_var
+                    self.script_output_dir = self.output_path_var
+                elif self.task_mode == "Merge":
+                    self.merge_dir = self.path_var
+                    self.merge_output_dir = self.output_path_var
+                elif self.task_mode == "Srt2Ass":
+                    self.srt2ass_dir = self.path_var
+                    self.srt2ass_output_dir = self.output_path_var
+                elif self.task_mode == "AutoSub":
+                    self.autosub_dir = self.path_var
+                    self.autosub_output_dir = self.output_path_var
+        
         threading.Thread(target=self.process, daemon=True).start()
 
     def process(self):

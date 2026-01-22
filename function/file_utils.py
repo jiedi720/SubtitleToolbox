@@ -47,8 +47,8 @@ def get_organized_path(base_output_dir, filename):
     分类规则：
     - .ass -> 直接放在 base 目录下
     - .srt -> 放在 base/srt 目录下 (作为原件归档)
-    - .txt/.docx/.pdf -> 分别放在对应的子目录中
-    - 其他后缀 -> 放在 other 目录中
+    - .txt/.docx/.pdf/.md -> 统一放在 base/script 目录下
+    - 其他后缀 -> 放在 base/other 目录中
     
     Args:
         base_output_dir: 基础输出目录
@@ -66,12 +66,11 @@ def get_organized_path(base_output_dir, filename):
     elif ext == '.srt':
         # SRT 文件进入专门的归档目录
         final_dir = os.path.join(base_output_dir, "srt")
-    elif ext in ['.txt', '.docx', '.pdf']:
-        # 根据文件类型确定子文件夹，直接放在目标目录下，不再生成script文件夹
-        sub_folder = 'txt' if ext == '.txt' else ('word' if ext == '.docx' else 'pdf')
-        final_dir = os.path.join(base_output_dir, sub_folder)
+    elif ext in ['.txt', '.docx', '.pdf', '.md']:
+        # 统一放到 script 目录下
+        final_dir = os.path.join(base_output_dir, "script")
     else:
-        # 其他类型文件，直接放在目标目录下，不再生成script文件夹
+        # 其他类型文件，放到 other 目录中
         final_dir = os.path.join(base_output_dir, "other")
 
     # 按需创建文件夹

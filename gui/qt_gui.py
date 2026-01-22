@@ -96,6 +96,7 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
             'PDF.png': [self.Output2PDF, self.MergePDF],
             'Word.ico': [self.Output2Word, self.MergeWord],
             'txt.png': [self.Output2Txt, self.MergeTxt],
+            'Markdown.png': [self.Output2Md, self.MergeMd],
             'shuttle.png': [self.Start],
             'stop.png': [self.Stop],
             'broom.png': [self.ClearLogs],
@@ -123,11 +124,13 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         self.Output2PDF.toggled.connect(self._on_pdf_state_changed)
         self.Output2Word.toggled.connect(self._on_word_state_changed)
         self.Output2Txt.toggled.connect(self._on_txt_state_changed)
+        self.Output2Md.toggled.connect(self._on_md_state_changed)
         
         # Merge选项卡中的输出选项
         self.MergePDF.toggled.connect(self._on_merge_pdf_state_changed)
         self.MergeWord.toggled.connect(self._on_merge_word_state_changed)
         self.MergeTxt.toggled.connect(self._on_merge_txt_state_changed)
+        self.MergeMd.toggled.connect(self._on_merge_md_state_changed)
         
         # 标签页切换信号
         self.Function.currentChanged.connect(self._on_tab_changed)
@@ -297,6 +300,11 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         if hasattr(self.app, 'output2txt'):
             self.app.output2txt = checked
     
+    def _on_md_state_changed(self, checked):
+        """Md输出选项变化时同步到控制器"""
+        if hasattr(self.app, 'output2md'):
+            self.app.output2md = checked
+    
     def _on_merge_pdf_state_changed(self, checked):
         """Merge PDF选项变化时同步到控制器"""
         if hasattr(self.app, 'merge_pdf'):
@@ -311,6 +319,11 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         """Merge Txt选项变化时同步到控制器"""
         if hasattr(self.app, 'merge_txt'):
             self.app.merge_txt = checked
+    
+    def _on_merge_md_state_changed(self, checked):
+        """Merge Md选项变化时同步到控制器"""
+        if hasattr(self.app, 'merge_md'):
+            self.app.merge_md = checked
     
     def _open_source_dir(self):
         """打开源文件目录"""
@@ -911,9 +924,11 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         self.Output2PDF.blockSignals(True)
         self.Output2Word.blockSignals(True)
         self.Output2Txt.blockSignals(True)
+        self.Output2Md.blockSignals(True)
         self.MergePDF.blockSignals(True)
         self.MergeWord.blockSignals(True)
         self.MergeTxt.blockSignals(True)
+        self.MergeMd.blockSignals(True)
         
         # 更新路径输入框
         self.ReadPathInput.setText(self.app.path_var)
@@ -926,6 +941,8 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
             self.Output2Word.setChecked(self.app.output2word)
         if hasattr(self.app, 'output2txt'):
             self.Output2Txt.setChecked(self.app.output2txt)
+        if hasattr(self.app, 'output2md'):
+            self.Output2Md.setChecked(self.app.output2md)
         
         # 更新Merge选项卡复选框
         if hasattr(self.app, 'merge_pdf'):
@@ -934,6 +951,8 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
             self.MergeWord.setChecked(self.app.merge_word)
         if hasattr(self.app, 'merge_txt'):
             self.MergeTxt.setChecked(self.app.merge_txt)
+        if hasattr(self.app, 'merge_md'):
+            self.MergeMd.setChecked(self.app.merge_md)
         
         # 根据task_mode设置当前标签页
         if hasattr(self.app, 'task_mode'):
@@ -1044,9 +1063,11 @@ class ToolboxGUI(QMainWindow, Ui_SubtitleToolbox):
         self.Output2PDF.blockSignals(False)
         self.Output2Word.blockSignals(False)
         self.Output2Txt.blockSignals(False)
+        self.Output2Md.blockSignals(False)
         self.MergePDF.blockSignals(False)
         self.MergeWord.blockSignals(False)
         self.MergeTxt.blockSignals(False)
+        self.MergeMd.blockSignals(False)
     
     def set_progress(self, value):
         """

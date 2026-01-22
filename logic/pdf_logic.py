@@ -342,7 +342,7 @@ def run_pdf_task(target_dir, log_func, progress_bar, root, batch_size=0, output_
             continue
         
         # 生成输出文件名
-        out_name = generate_output_name([os.path.basename(f) for f in group], ".pdf", volume_pattern)
+        out_name = generate_output_name([os.path.basename(f) for f in group], ".pdf", volume_pattern, target_dir)
         # 获取组织化路径
         out_path = get_organized_path(base_output_dir, out_name)
         
@@ -430,7 +430,9 @@ def run_pdf_task(target_dir, log_func, progress_bar, root, batch_size=0, output_
             
             # 生成PDF
             doc.multiBuild(story)
-            log_func(f"📄 已生成: {os.path.join('pdf', out_name).replace('/', '\\')}", tag="pdf_red")
+            # 使用实际生成的文件路径
+            relative_path = os.path.relpath(out_path, base_output_dir)
+            log_func(f"📄 已生成: {relative_path.replace('/', '\\')}", tag="pdf_red")
         except Exception as e: 
             log_func(f"❌ 失败: {e}")
     

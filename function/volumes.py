@@ -3,6 +3,7 @@
 负责处理文件的智能分组、分卷设置管理等功能。
 """
 
+import os
 import math
 from function.naming import get_series_name
 
@@ -22,25 +23,51 @@ def smart_group_files(file_paths, max_batch_size):
     
     Args:
         file_paths: 文件路径列表
-        max_batch_size: 每组最大文件数
+        max_batch_size: 每组最大文件数（0表示整季模式，按剧集分组）
         
     Returns:
         list: 分组后的文件列表，每个元素是一组文件路径
     """
     if not file_paths: return []
     
-    # 修复：直接处理所有文件，不按剧集名称分组
-    # 这解决了日语教材文件名（如01.xxx.docx）被单独分组的问题
+    import re
+    
     files = sorted(file_paths)
     total = len(files)
     final_groups = []
     
-    # 如果不限制每包大小，则全部放入一组
+    # 如果不限制每包大小（整季模式），则按剧集名称分组
     if max_batch_size <= 0:
-        final_groups.append(files)
+        # 按剧集名称和季号分组，确保不同季分别保存
+        series_season_groups = {}
+        pattern_se = re.compile(r'[Ss](\d{1,2})[\s.]*[Ee](\d{1,3})', re.IGNORECASE)
+        
+        for fp in files:
+            filename = os.path.basename(fp)
+            series_name = get_series_name(filename)
+            
+            # 提取季号
+            match = pattern_se.search(filename)
+            if match:
+                season_num = match.group(1)
+                # 使用"系列名+S季号"作为分组键
+                group_key = f"{series_name}_S{season_num}"
+            else:
+                # 没有季号的文件，只按系列名分组
+                group_key = series_name
+            
+            if group_key not in series_season_groups:
+                series_season_groups[group_key] = []
+            series_season_groups[group_key].append(fp)
+        
+        # 将分组后的文件列表按分组键排序后返回
+        sorted_keys = sorted(series_season_groups.keys())
+        for key in sorted_keys:
+            if series_season_groups[key]:
+                final_groups.append(series_season_groups[key])
         return final_groups
     
-    # 核心平摊算法
+    # 核心平摊算法（智能模式和单集模式）
     # 1. 计算总共需要分成几个组
     num_groups = math.ceil(total / max_batch_size)
     

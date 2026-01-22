@@ -15,7 +15,7 @@ __all__ = [
 ]
 
 def clean_filename_title(filename):
-    """从文件名中提取纯净的标题
+    """从文件名中提取纯净标题
     
     保留对单集集数的识别，确保 PDF 内部标题含有 S01E01 格式。
     对于电影文件，提取完整标题并移除常见垃圾词。
@@ -36,22 +36,18 @@ def clean_filename_title(filename):
         # 对于电影文件，尝试提取年份之前的部分
         match_year = re.search(r'(.*?)[._\s(\[](19|20)\d{2}', name)
         if match_year: 
-            name = match_year.group(1)
+            # 保留到年份为止，包括年份
+            year_pos = match_year.end()
+            name = name[:year_pos]
+        else:
+            # 如果没有找到年份，提取到第一个非字母数字中文的字符之前
+            # 匹配连续的字母、数字、中文、点、空格、下划线、连字符
+            match_simple = re.search(r'^([A-Za-z0-9\u4e00-\u9fa5\s\.\-_]+)', name)
+            if match_simple:
+                name = match_simple.group(1)
     
     # 替换分隔符为空格
     clean_name = name.replace('.', ' ').replace('_', ' ').replace('-', ' ')
-    
-    # 过滤常见垃圾词
-    junk_words = [
-        r'\b(19|20)\d{2}\b', r'1080[pi]', r'720[pi]', r'2160[pi]', r'4k', 
-        r'WEB.?DL', r'WEB.?Rip', r'BluRay', r'HDTV', r'H\.?264', r'H\.?265', 
-        r'x264', r'x265', r'HEVC', r'AAC', r'AC3', r'E\.?AC3', r'DDP', r'5\.1', 
-        r'Netflix', r'NF', r'AMZN', r'DSNP', r'Subs', r'Repack', r'Proper', 
-        r'TC', r'CMCTV', r'text', r'track\d+', r'FRDS', r'\[kor\]', r'\[chi\]', r'\[cht\]',
-        r'\bwhisper\b'  # 添加whisper到垃圾词列表
-    ]
-    for junk in junk_words: 
-        clean_name = re.sub(junk, '', clean_name, flags=re.IGNORECASE)
     
     # 移除多余空格并返回
     return re.sub(r'\s+', ' ', clean_name).strip()
@@ -71,7 +67,7 @@ def get_series_name(filename):
         return match.group(1).replace('.', ' ').replace('_', ' ').strip().lower()
     return name.split(' ')[0].lower() 
 
-def generate_output_name(filenames, ext=".docx", volume_pattern="智能"):
+def generate_output_name(filenames, ext=".docx", volume_pattern="智能", target_dir=None):
     """生成合并输出文件名，根据不同模式生成不同格式
     
     目标格式:
@@ -84,6 +80,7 @@ def generate_output_name(filenames, ext=".docx", volume_pattern="智能"):
         filenames: 文件名列表
         ext: 输出文件扩展名
         volume_pattern: 分卷模式（"整季"或"智能"）
+        target_dir: 目标目录路径，用于提取目录标题名称
         
     Returns:
         str: 生成的输出文件名
@@ -127,7 +124,13 @@ def generate_output_name(filenames, ext=".docx", volume_pattern="智能"):
             # 清理共有前缀，去除末尾的分隔符和不需要的字符串
             common_prefix = re.sub(r'[._-]+$', '', common_prefix)
             # 移除不需要的字符串，如whisper和[kor]
-            junk_patterns = [r'\.whisper', r'\[kor\]', r'\[chi\]', r'\[cht\]']
+            junk_patterns = [
+                r'\.whisper', 
+                r'\[kor\]', r'\[chi\]', r'\[cht\]',
+                r'@[^@\s]+@',  # 匹配 @xxx@ 格式的字符串
+                r'￡[^￡\s]*@[^\s]*',  # 匹配 ￡xxx@xxx 格式的字符串
+                r'_track\d+',  # 匹配 _track7 格式的字符串
+            ]
             for pattern in junk_patterns:
                 common_prefix = re.sub(pattern, '', common_prefix, flags=re.IGNORECASE)
             # 再次清理，确保没有多余的分隔符
@@ -148,7 +151,37 @@ def generate_output_name(filenames, ext=".docx", volume_pattern="智能"):
         final_prefix = common_prefix.replace(' ', '.')
 
     if first['s'] == 999:
-        # 电影文件或没有集数信息的文件：只显示标题
+        # 电影文件或没有集数信息的文件：使用年份之前的标题
+        # 从第一个文件名中提取年份之前的部分
+        first_basename = os.path.splitext(basenames[0])[0]
+        
+        # 尝试匹配年份 (19xx 或 20xx)
+        match_year = re.search(r'(.*?)[._\s(\[](19|20)\d{2}', first_basename)
+        if match_year:
+            # 保留到年份为止，包括年份
+            year_pos = match_year.end()
+            movie_title = first_basename[:year_pos]
+        else:
+            # 如果没有找到年份，使用当前的 final_prefix
+            movie_title = final_prefix
+        
+        # 清理电影标题中的垃圾信息
+        junk_patterns = [
+            r'\.whisper', 
+            r'\[kor\]', r'\[chi\]', r'\[cht\]',
+            r'@[^@\s]+@',  # 匹配 @xxx@ 格式的字符串
+            r'￡[^￡\s]*@[^\s]*',  # 匹配 ￡xxx@xxx 格式的字符串
+            r'_track\d+',  # 匹配 _track7 格式的字符串
+        ]
+        for pattern in junk_patterns:
+            movie_title = re.sub(pattern, '', movie_title, flags=re.IGNORECASE)
+        
+        # 清理末尾的分隔符
+        movie_title = re.sub(r'[._-]+$', '', movie_title)
+        
+        # 转换为点号连接格式
+        final_prefix = movie_title.replace(' ', '.')
+        
         return f"{final_prefix}{ext}"
 
     s_start, e_start = first['s'], first['e']

@@ -27,10 +27,11 @@ if internal_dir and os.path.exists(internal_dir):
 
 from PySide6.QtWidgets import QMessageBox
 from logic.txt_logic import run_txt_creation_task
+from logic.md_logic import run_md_creation_task
 from logic.pdf_logic import run_pdf_task
 from logic.word_logic import run_word_creation_task
 from font.srt2ass import run_ass_task
-from function.merge import run_pdf_merge_task, run_win32_merge_task, run_txt_merge_task
+from function.merge import run_pdf_merge_task, run_win32_merge_task, run_txt_merge_task, run_md_merge_task
 from function.volumes import get_batch_size_from_volume_pattern
 
 
@@ -48,7 +49,7 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
         gui: GUI 对象
         **kwargs: 其他参数
     """
-    # 获取stop_flag（列表形式，[False]或[True]）
+# 获取stop_flag（列表形式，[False]或[True]）
     stop_flag = kwargs.get('stop_flag', [False])
     # 声明全局变量
     global _global_generator
@@ -56,11 +57,19 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
     try:
         _global_generator
     except NameError:
-        _global_generator = {}  # 使用字典保存多个 generator 对象
+        _global_generator = {}  # 使用字典来保存多个 generator 对象
+    
     # 验证源目录
     target_dir = path_var.strip()
-    if not target_dir or not os.path.exists(target_dir):
+    
+    # 检查路径是否为空
+    if not target_dir:
         log_callback("❌ 未设置待处理文件目录")
+        return False
+    
+    # 检查路径是否存在
+    if not os.path.exists(target_dir):
+        log_callback(f"❌ 源目录不存在: {target_dir}")
         return False
     
     # 获取输出目录
@@ -107,20 +116,9 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
                 volume_pattern = gui.volume_pattern
                 batch = get_batch_size_from_volume_pattern(volume_pattern)
             
-            # 执行各类输出任务
-            if gui.Output2PDF.isChecked():
-                run_pdf_task(
-                    target_dir, 
-                    log_callback, 
-                    progress_callback, 
-                    root, 
-                    batch, 
-                    final_out, 
-                    volume_pattern,
-                    stop_flag=stop_flag
-                )
-            if gui.Output2Word.isChecked():
-                run_word_creation_task(
+            # 执行各类输出任务（按顺序：markdown → txt → word → pdf）
+            if gui.Output2Md.isChecked():
+                run_md_creation_task(
                     target_dir, 
                     log_callback, 
                     progress_callback, 
@@ -141,6 +139,28 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
                     volume_pattern,
                     stop_flag=stop_flag
                 )
+            if gui.Output2Word.isChecked():
+                run_word_creation_task(
+                    target_dir, 
+                    log_callback, 
+                    progress_callback, 
+                    root, 
+                    batch, 
+                    final_out, 
+                    volume_pattern,
+                    stop_flag=stop_flag
+                )
+            if gui.Output2PDF.isChecked():
+                run_pdf_task(
+                    target_dir, 
+                    log_callback, 
+                    progress_callback, 
+                    root, 
+                    batch, 
+                    final_out, 
+                    volume_pattern,
+                    stop_flag=stop_flag
+                )
         elif task_mode == "Merge":
             # 执行合并任务
             # 检查Merge标签页中的复选框状态
@@ -149,9 +169,10 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
                 merge_pdf = gui.MergePDF.isChecked()
                 merge_word = gui.MergeWord.isChecked()
                 merge_txt = gui.MergeTxt.isChecked()
+                merge_md = gui.MergeMd.isChecked()
                 
                 # 检查是否至少选中了一个合并选项
-                if not merge_pdf and not merge_word and not merge_txt:
+                if not merge_pdf and not merge_word and not merge_txt and not merge_md:
                     log_callback("❌ 请至少选择一个合并选项")
                     return False
                 
@@ -178,6 +199,16 @@ def execute_task(task_mode, path_var, output_path_var, log_callback, progress_ca
                 
                 if merge_txt:
                     run_txt_merge_task(
+                        target_dir, 
+                        log_callback, 
+                        progress_callback, 
+                        root, 
+                        output_dir=final_out,
+                        stop_flag=stop_flag
+                )
+            
+                if merge_md:
+                    run_md_merge_task(
                         target_dir, 
                         log_callback, 
                         progress_callback, 
