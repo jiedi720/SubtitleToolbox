@@ -58,11 +58,14 @@ def run_md_creation_task(target_dir, log_func, progress_bar, root, batch_size=0,
                     if stop_flag[0]:
                         log_func("⚠️ 任务已被用户停止")
                         return
-                        
+                    
+                    # 每个文件标题前都添加空行
+                    outfile.write("\n")
+                    
                     title = clean_filename_title(os.path.basename(fp))
                     outfile.write(f"---\n")
                     outfile.write(f"# {title}\n")
-                    outfile.write(f"---\n\n")
+                    outfile.write(f"---\n")
                     
                     # 解析字幕内容
                     content_list = parse_subtitle_to_list(fp)
