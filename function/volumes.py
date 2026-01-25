@@ -44,27 +44,30 @@ def smart_group_files(file_paths, max_batch_size):
         
         for fp in files:
             filename = os.path.basename(fp)
-            series_name = get_series_name(filename)
             
             # 提取季号
             match = pattern_se.search(filename)
             if match:
+                # 有集数标识的文件：按系列名和季号分组
+                series_name = get_series_name(filename)
                 season_num = match.group(1)
                 # 使用"系列名+S季号"作为分组键
                 group_key = f"{series_name}_S{season_num}"
+                
+                if group_key not in series_season_groups:
+                    series_season_groups[group_key] = []
+                series_season_groups[group_key].append(fp)
             else:
-                # 没有季号的文件，只按系列名分组
-                group_key = series_name
-            
-            if group_key not in series_season_groups:
-                series_season_groups[group_key] = []
-            series_season_groups[group_key].append(fp)
+                # 没有季号的文件：每个文件单独分组
+                # 新闻类或其他没有集数标识的文件应该单独处理
+                final_groups.append([fp])
         
-        # 将分组后的文件列表按分组键排序后返回
+        # 将有集数标识的文件分组添加到最终结果
         sorted_keys = sorted(series_season_groups.keys())
         for key in sorted_keys:
             if series_season_groups[key]:
                 final_groups.append(series_season_groups[key])
+        
         return final_groups
     
     # 核心平摊算法（智能模式和单集模式）

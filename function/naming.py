@@ -28,6 +28,11 @@ def clean_filename_title(filename):
     """
     name = os.path.splitext(filename)[0]
     
+    # 移除 whisper 相关后缀，如 .whisper.[kor]、.whisper.[eng] 等
+    # 处理各种变体：大小写不敏感，允许空格
+    whisper_pattern = r'\.whisper[\s.]*\[[^\]]+\][\s.]*'
+    name = re.sub(whisper_pattern, '', name, flags=re.IGNORECASE)
+    
     # 提取 S01E01 或 年份之前的标题部分
     match_se = re.search(r'(.*?(?:S\d{1,2}[\s.]?E\d{1,3}|E\d{1,3}))', name, re.IGNORECASE)
     if match_se: 
